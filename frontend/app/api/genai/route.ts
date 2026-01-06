@@ -305,7 +305,7 @@ export async function POST(request: NextRequest) {
     console.log("✅ Roadmap generated successfully:", roadmapData.title)
     return NextResponse.json({
       success: true,
-      ...roadmapData,
+      data: roadmapData,
     })
   } catch (error) {
     console.error("💥 GenAI API Error:", error)
@@ -359,6 +359,9 @@ export async function POST(request: NextRequest) {
       ],
     }
 
-    return NextResponse.json(fallbackRoadmap)
+    return NextResponse.json({
+      success: true,
+      data: fallbackRoadmap,
+    })
   }
 }

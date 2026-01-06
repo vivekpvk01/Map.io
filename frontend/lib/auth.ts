@@ -1,72 +1,36 @@
-import bcrypt from "bcryptjs"
-import jwt from "jsonwebtoken"
-import type { User, UserSession } from "./models/user"
+import { NextRequest, NextResponse } from 'next/server'
+import { verifyJwt } from './jwt'
 
-const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key"
-
-export async function hashPassword(password: string): Promise<string> {
-  return await bcrypt.hash(password, 12)
+export function getTokenFromRequest(req: NextRequest) {
+  const cookie = req.cookies.get('auth-token')?.value
+  if (!cookie) return null
+  return cookie
 }
 
-export async function verifyPassword(password: string, hashedPassword: string): Promise<boolean> {
-  return await bcrypt.compare(password, hashedPassword)
-}
-
-export function generateToken(user: User): string {
-  return jwt.sign(
-    {
-      id: user._id?.toString(),
-      email: user.email,
-      name: user.name,
-    },
-    JWT_SECRET,
-    { expiresIn: "7d" },
-  )
-}
-
-export function verifyToken(token: string): UserSession | null {
-  try {
-    const decoded = jwt.verify(token, JWT_SECRET) as any
-    return {
-      id: decoded.id,
-      email: decoded.email,
-      name: decoded.name,
+export function requireAuth(handler: Function) {
+  return async (req: NextRequest, ...rest: any[]) => {
+    const token = getTokenFromRequest(req)
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 })
     }
-  } catch (error) {
-    return null
+    const payload = verifyJwt(token)
+    if (!payload) {
+      return NextResponse.json({ success: false, error: 'Invalid or expired token' }, { status: 401 })
+    }
+    return handler(req, ...rest, payload)
   }
 }
 
-export async function signUp(email: string, password: string, name: string): Promise<{ user: any; token: string }> {
-  const response = await fetch("/api/auth/signup", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password, name }),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || "Sign up failed")
+export function requireAdmin(handler: Function) {
+  return async (req: NextRequest, ...rest: any[]) => {
+    const token = getTokenFromRequest(req)
+    if (!token) {
+      return NextResponse.json({ success: false, error: 'Not authenticated' }, { status: 401 })
+    }
+    const payload = verifyJwt(token)
+    if (!payload || (payload as any).role !== 'admin') {
+      return NextResponse.json({ success: false, error: 'Admin role required' }, { status: 403 })
+    }
+    return handler(req, ...rest, payload)
   }
-
-  return await response.json()
-}
-
-export async function signIn(email: string, password: string): Promise<{ user: any; token: string }> {
-  const response = await fetch("/api/auth/signin", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ email, password }),
-  })
-
-  if (!response.ok) {
-    const error = await response.json()
-    throw new Error(error.error || "Sign in failed")
-  }
-
-  return await response.json()
 }

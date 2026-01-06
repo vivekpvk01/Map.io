@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { LogOut, User } from "lucide-react"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/app/providers/auth-provider"
 import { toast } from "sonner"
-import ThemeToggle from "@/components/ThemeToggle"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 
 export default function Navbar() {
   const router = useRouter()
@@ -20,15 +20,10 @@ export default function Navbar() {
       // Clear client-side session/auth state
       await signOut()
 
-      // Clear localStorage
+      // Clear any roadmap progress data from localStorage (non-auth data)
       if (typeof window !== "undefined") {
-        localStorage.removeItem("user")
-        localStorage.removeItem("token")
-        localStorage.removeItem("auth_token")
-
-        // Clear any roadmap progress data
         Object.keys(localStorage).forEach((key) => {
-          if (key.startsWith("roadmap_progress_")) {
+          if (key.startsWith("roadmap-progress-")) {
             localStorage.removeItem(key)
           }
         })

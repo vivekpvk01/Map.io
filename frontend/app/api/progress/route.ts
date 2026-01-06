@@ -1,31 +1,27 @@
 import { type NextRequest, NextResponse } from "next/server"
-import getClientPromise from "@/lib/mongodb"
+import { dbConnect } from "@/lib/db"
+import { requireAuth } from "@/lib/auth"
+import { UserProgress } from "@/lib/models/userProgress"
 
-export async function GET(request: NextRequest) {
+export const GET = requireAuth(async (req: NextRequest, _res: any, payload: any) => {
   try {
-    const client = await getClientPromise()
-    const db = client.db("portfolio")
-    const progress = await db.collection("progress").find({}).toArray()
-
-    return NextResponse.json({ progress })
+    await dbConnect()
+    const progress = await UserProgress.find({ userId: payload.id }).select("-__v")
+    return NextResponse.json({ success: true, data: progress })
   } catch (e: any) {
     console.error(e)
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 })
   }
-}
+})
 
-export async function POST(request: NextRequest) {
+export const POST = requireAuth(async (req: NextRequest, _res: any, payload: any) => {
   try {
-    const client = await getClientPromise()
-    const db = client.db("portfolio")
-
-    const body = await request.json()
-
-    const progress = await db.collection("progress").insertOne(body)
-
-    return NextResponse.json({ progress })
+    await dbConnect()
+    const body = await req.json()
+    const progress = await UserProgress.create({ ...body, userId: payload.id })
+    return NextResponse.json({ success: true, data: progress })
   } catch (e: any) {
     console.error(e)
-    return NextResponse.json({ error: e.message }, { status: 500 })
+    return NextResponse.json({ success: false, error: e.message }, { status: 500 })
   }
-}
+})

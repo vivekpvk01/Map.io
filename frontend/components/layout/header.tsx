@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation"
 import { LogOut, LayoutDashboard } from "lucide-react"
 import Link from "next/link"
-import { useAuth } from "@/components/providers/auth-provider"
+import { useAuth } from "@/app/providers/auth-provider"
 
 export default function Header() {
   const router = useRouter()
@@ -19,7 +19,6 @@ export default function Header() {
       console.error("❌ Logout error:", error)
       // Force logout even if there's an error
       if (typeof window !== "undefined") {
-        localStorage.clear()
         document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
       }
       router.push("/login")

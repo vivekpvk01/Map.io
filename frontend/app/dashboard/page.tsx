@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { EnhancedRoadmapViewer } from "@/components/roadmap/enhanced-roadmap-viewer"
 import Link from "next/link"
 import { User, BookOpen, Target, TrendingUp, Plus, Eye, LogOut } from "lucide-react"
+import { useAuth } from "@/app/providers/auth-provider"
 
 // Sample roadmap data matching the structure in the images
 const sampleRoadmap = {
@@ -81,70 +82,22 @@ export default function DashboardPage() {
   const [authChecked, setAuthChecked] = useState(false)
   const router = useRouter()
 
+  const { user: authUser, loading: authLoading, signOut } = useAuth()
+
   useEffect(() => {
-    const verifyAuth = async () => {
-      console.log("🔍 Dashboard: Starting auth verification...")
-
-      const token = localStorage.getItem("auth-token")
-      console.log("Token from localStorage:", token ? "✅ Found" : "❌ Not found")
-
-      if (!token) {
-        console.log("🚫 No token, redirecting to login")
-        router.push("/login")
-        return
-      }
-
-      try {
-        console.log("📡 Verifying token with API...")
-        const response = await fetch("/api/auth/verify", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        })
-
-        console.log("API response status:", response.status)
-        const data = await response.json()
-        console.log("API response data:", data)
-
-        if (response.ok && data.success) {
-          console.log("✅ Token verified successfully")
-
-          // Get user data from localStorage or API response
-          let userData = data.user
-          const storedUser = localStorage.getItem("user")
-          if (storedUser) {
-            userData = JSON.parse(storedUser)
-          }
-
-          console.log("Setting user data:", userData)
-          setUser(userData)
-          setAuthChecked(true)
-        } else {
-          console.log("❌ Token verification failed")
-          localStorage.removeItem("auth-token")
-          localStorage.removeItem("user")
-          router.push("/login")
-        }
-      } catch (error) {
-        console.error("💥 Auth verification error:", error)
-        localStorage.removeItem("auth-token")
-        localStorage.removeItem("user")
-        router.push("/login")
-      } finally {
+    if (!authLoading) {
+      if (authUser) {
+        setUser(authUser)
+        setAuthChecked(true)
         setLoading(false)
+      } else {
+        router.push("/login")
       }
     }
+  }, [authUser, authLoading, router])
 
-    verifyAuth()
-  }, [router])
-
-  const handleLogout = () => {
-    console.log("🚪 Logging out...")
-
-    // Clear all auth data
-    localStorage.removeItem("auth-token")
-    localStorage.removeItem("user")
-    localStorage.removeItem("roadmap-progress")
+  const handleLogout = async () => {
+    await signOut()
 
     // Clear cookies
     document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"

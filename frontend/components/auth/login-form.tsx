@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import Link from "next/link"
+import { useAuth } from "@/app/providers/auth-provider"
 
 export function LoginForm() {
   const [email, setEmail] = useState("")
@@ -15,53 +16,18 @@ export function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const router = useRouter()
+  const { signIn } = useAuth()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("🔐 Login attempt started")
-
     setIsLoading(true)
     setError("")
 
     try {
-      const response = await fetch("/api/auth/signin", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password: password,
-        }),
-      })
-
-      const data = await response.json()
-      console.log("Login response:", data)
-
-      if (response.ok && data.success) {
-        console.log("✅ Login successful!")
-
-        // Store authentication data
-        if (data.token) {
-          localStorage.setItem("auth-token", data.token)
-          // Set cookie for middleware
-          document.cookie = `auth-token=${data.token}; path=/; max-age=604800; secure; samesite=strict`
-        }
-        if (data.user) {
-          localStorage.setItem("user", JSON.stringify(data.user))
-        }
-
-        console.log("🔄 Redirecting to dashboard...")
-
-        // Force navigation to dashboard
-        window.location.href = "/dashboard"
-      } else {
-        console.log("❌ Login failed:", data.error)
-        setError(data.error || "Invalid email or password. Try 'password123' for demo.")
-      }
-    } catch (error) {
-      console.error("💥 Login error:", error)
-      setError("Connection error. Please try again.")
+      await signIn(email.trim().toLowerCase(), password)
+      router.push("/dashboard")
+    } catch (err: any) {
+      setError(err.message || "Invalid email or password")
     } finally {
       setIsLoading(false)
     }

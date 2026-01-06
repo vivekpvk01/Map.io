@@ -77,20 +77,17 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
   useEffect(() => {
     const loadProgress = async () => {
       try {
-        const token = localStorage.getItem("auth_token")
-        if (!token || !roadmap.id) return
+        if (!roadmap.id) return
 
-        const response = await fetch("/api/progress", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+        const response = await fetch(`${apiUrl}/progress/${roadmap.id}`, {
+          credentials: "include",
         })
 
         if (response.ok) {
-          const { roadmapProgress } = await response.json()
-          const currentProgress = roadmapProgress[roadmap.id]
-          if (currentProgress?.completedNodes) {
-            setCompletedNodes(new Set(currentProgress.completedNodes))
+          const result = await response.json()
+          if (result.success && result.data?.completedNodes) {
+            setCompletedNodes(new Set(result.data.completedNodes))
           }
         }
       } catch (error) {
@@ -103,20 +100,25 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
 
   const updateProgress = async (nodeId: string) => {
     try {
-      const token = localStorage.getItem("auth_token")
-      if (!token) return
+      if (!roadmap.id) return
 
-      const response = await fetch("/api/progress", {
+      const newCompletedNodes = new Set(completedNodes)
+      if (newCompletedNodes.has(nodeId)) {
+        newCompletedNodes.delete(nodeId)
+      } else {
+        newCompletedNodes.add(nodeId)
+      }
+      setCompletedNodes(newCompletedNodes)
+
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
+      const response = await fetch(`${apiUrl}/progress/${roadmap.id}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
+        credentials: "include",
         body: JSON.stringify({
-          roadmapId: roadmap.id || roadmap.title.toLowerCase().replace(/\s+/g, "-"),
-          nodeId,
-          totalNodes: roadmap.nodes.length,
-          action: "toggle",
+          completedNodes: Array.from(newCompletedNodes),
         }),
       })
 

@@ -1,29 +1,11 @@
-import type { ObjectId } from "mongodb"
+import { Schema, model, models } from 'mongoose'
 
-export interface RoadmapProgress {
-  completedNodes: string[]
-  lastVisited: Date
-  totalNodes: number
-  progressPercentage: number
-}
+const UserSchema = new Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true, index: true },
+  passwordHash: { type: String, required: true },
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  createdAt: { type: Date, default: Date.now }
+})
 
-export interface User {
-  _id?: ObjectId
-  email: string
-  name: string
-  passwordHash: string
-  roadmapProgress: Record<string, RoadmapProgress>
-  createdAt: Date
-  updatedAt: Date
-}
-
-export interface UserSession {
-  id: string
-  email: string
-  name: string
-}
-
-// Default export
-export default User
-
-// Named export for backward compatibility
+export const User = models.User || model('User', UserSchema)

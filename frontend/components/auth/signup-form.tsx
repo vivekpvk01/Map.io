@@ -55,11 +55,6 @@ export function SignupForm() {
       const result = await response.json()
 
       if (response.ok && result.success) {
-        // Store user data if provided
-        if (result.user) {
-          localStorage.setItem("user", JSON.stringify(result.user))
-        }
-
         // Show success toast
         toast.success("Account created successfully! Redirecting to dashboard...")
 

@@ -1,29 +1,10 @@
-import getClientPromise from "./mongodb"
-import type { MongoClient, Db } from "mongodb"
+import mongoose from 'mongoose'
 
-let cachedClient: MongoClient | null = null
-let cachedDb: Db | null = null
+const MONGODB_URI = process.env.MONGODB_URI as string
 
-export async function connectDB(): Promise<Db> {
-  if (cachedClient && cachedDb) {
-    return cachedDb
-  }
+if (!MONGODB_URI) throw new Error('Please provide a valid MONGODB_URI in your environment variables.')
 
-  try {
-    const client = await getClientPromise()
-    const db = client.db("roadmap-app") // You can change this database name
-
-    cachedClient = client
-    cachedDb = db
-
-    return db
-  } catch (error) {
-    console.error("Failed to connect to database:", error)
-    throw error
-  }
-}
-
-export async function getCollection(collectionName: string) {
-  const db = await connectDB()
-  return db.collection(collectionName)
+export async function dbConnect() {
+  if (mongoose.connection.readyState >= 1) return
+  await mongoose.connect(MONGODB_URI, { dbName: undefined })
 }
