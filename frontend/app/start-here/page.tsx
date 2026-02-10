@@ -36,7 +36,7 @@ export default function StartHerePage() {
             <CardHeader>
               <Zap className="h-12 w-12 mx-auto text-green-500 mb-4" />
               <CardTitle>Generate Custom</CardTitle>
-              <CardDescription>Create a personalized roadmap with AI</CardDescription>
+              <CardDescription>Create personalized learning paths powered by AI</CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/generate">

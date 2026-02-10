@@ -9,105 +9,66 @@ import { EnhancedRoadmapViewer } from "@/components/roadmap/enhanced-roadmap-vie
 import Link from "next/link"
 import { User, BookOpen, Target, TrendingUp, Plus, Eye, LogOut } from "lucide-react"
 import { useAuth } from "@/app/providers/auth-provider"
-
-// Sample roadmap data matching the structure in the images
-const sampleRoadmap = {
-  id: "frontend-fundamentals",
-  title: "Frontend Development Fundamentals",
-  description: "Master the core concepts of modern frontend development",
-  nodes: [
-    {
-      id: "fundamentals",
-      type: "default",
-      position: { x: 200, y: 50 },
-      data: {
-        label: "Fundamentals",
-        description: "Learn the basic building blocks of web development",
-        difficulty: "beginner",
-      },
-    },
-    {
-      id: "core-concepts",
-      type: "default",
-      position: { x: 200, y: 180 },
-      data: {
-        label: "Core Concepts",
-        description: "Understand essential programming concepts",
-        difficulty: "beginner",
-      },
-    },
-    {
-      id: "html-basics",
-      type: "default",
-      position: { x: 200, y: 310 },
-      data: {
-        label: "HTML Basics",
-        description: "Structure web content with HTML",
-        difficulty: "beginner",
-      },
-    },
-    {
-      id: "css-styling",
-      type: "default",
-      position: { x: 200, y: 440 },
-      data: {
-        label: "CSS Styling",
-        description: "Style and layout with CSS",
-        difficulty: "beginner",
-      },
-    },
-    {
-      id: "javascript-fundamentals",
-      type: "default",
-      position: { x: 200, y: 570 },
-      data: {
-        label: "JavaScript Fundamentals",
-        description: "Add interactivity with JavaScript",
-        difficulty: "intermediate",
-      },
-    },
-  ],
-  edges: [
-    { id: "fundamentals-core", source: "fundamentals", target: "core-concepts" },
-    { id: "core-html", source: "core-concepts", target: "html-basics" },
-    { id: "html-css", source: "html-basics", target: "css-styling" },
-    { id: "css-js", source: "css-styling", target: "javascript-fundamentals" },
-  ],
-}
+import { useMounted } from "@/hooks/use-mounted"
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [showRoadmap, setShowRoadmap] = useState(false)
+  const [roadmaps, setRoadmaps] = useState<any[]>([])
   const [authChecked, setAuthChecked] = useState(false)
   const router = useRouter()
+  const mounted = useMounted()
 
   const { user: authUser, loading: authLoading, signOut } = useAuth()
 
   useEffect(() => {
+    if (!mounted) return
+
     if (!authLoading) {
       if (authUser) {
         setUser(authUser)
         setAuthChecked(true)
-        setLoading(false)
+        fetchData()
       } else {
         router.push("/login")
       }
     }
-  }, [authUser, authLoading, router])
+  }, [authUser, authLoading, router, mounted])
 
-  const handleLogout = async () => {
-    await signOut()
-
-    // Clear cookies
-    document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
-
-    // Redirect to login
-    router.push("/login")
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+      const response = await fetch(`${apiUrl}/roadmaps`, {
+        credentials: "include",
+      })
+      if (response.ok) {
+        const result = await response.json()
+        if (result.success) {
+          setRoadmaps(result.data)
+        }
+      }
+    } catch (error) {
+      console.error("Failed to fetch dashboard data:", error)
+    } finally {
+      setLoading(false)
+    }
   }
 
-  // Show loading state
-  if (loading || !authChecked) {
+  const handleLogout = async () => {
+    try {
+      await signOut()
+      router.push("/login")
+    } catch (error) {
+      console.error("Logout failed:", error)
+    }
+  }
+
+  // Prevent SSR Rendering of loading state to avoid hydration mismatch
+  if (!mounted) return null
+
+  // Show loading state ONLY on client
+  if (authLoading || (loading && !authChecked)) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -116,11 +77,6 @@ export default function DashboardPage() {
         </div>
       </div>
     )
-  }
-
-  // Show roadmap if requested
-  if (showRoadmap) {
-    return <EnhancedRoadmapViewer roadmap={sampleRoadmap} />
   }
 
   return (
@@ -143,7 +99,6 @@ export default function DashboardPage() {
                   <div className="text-gray-500 text-xs">{user?.email}</div>
                 </div>
               </div>
-              <p className="text-sm italic text-gray-500"></p>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="w-4 h-4 mr-2" />
                 Logout
@@ -167,12 +122,12 @@ export default function DashboardPage() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Roadmaps Created</CardTitle>
+              <CardTitle className="text-sm font-medium">Available Roadmaps</CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">3</div>
-              <p className="text-xs text-muted-foreground">+1 from last week</p>
+              <div className="text-2xl font-bold">{roadmaps.length}</div>
+              <p className="text-xs text-muted-foreground">Official learning paths</p>
             </CardContent>
           </Card>
 
@@ -182,8 +137,8 @@ export default function DashboardPage() {
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">12</div>
-              <p className="text-xs text-muted-foreground">+4 from last week</p>
+              <div className="text-2xl font-bold">0</div>
+              <p className="text-xs text-muted-foreground">Start learning today!</p>
             </CardContent>
           </Card>
 
@@ -193,8 +148,8 @@ export default function DashboardPage() {
               <BookOpen className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">7 days</div>
-              <p className="text-xs text-muted-foreground">Keep it up!</p>
+              <div className="text-2xl font-bold">1 day</div>
+              <p className="text-xs text-muted-foreground">Welcome aboard!</p>
             </CardContent>
           </Card>
 
@@ -204,7 +159,7 @@ export default function DashboardPage() {
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">68%</div>
+              <div className="text-2xl font-bold">0%</div>
               <p className="text-xs text-muted-foreground">Overall completion</p>
             </CardContent>
           </Card>
@@ -231,16 +186,18 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Eye className="w-5 h-5" />
-                View Interactive Roadmap
+                Explore Roadmaps
               </CardTitle>
               <CardDescription>
-                Explore your learning path with progress tracking and green completion borders
+                Browse official roadmaps and choose your next goal
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <Button variant="outline" className="w-full" onClick={() => setShowRoadmap(true)}>
-                View Roadmap
-              </Button>
+              <Link href="/roadmaps">
+                <Button variant="outline" className="w-full">
+                  Explore Now
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>
@@ -249,58 +206,49 @@ export default function DashboardPage() {
         <Card>
           <CardHeader>
             <CardTitle>Your Learning Roadmaps</CardTitle>
-            <CardDescription>Continue where you left off - completed nodes show green borders</CardDescription>
+            <CardDescription>Continue where you left off</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                    <BookOpen className="w-5 h-5 text-blue-600" />
+              {roadmaps.length > 0 ? (
+                roadmaps.slice(0, 3).map((roadmap) => (
+                  <div key={roadmap._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                        <BookOpen className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium">{roadmap.title}</h4>
+                        <p className="text-sm text-gray-500">{roadmap.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <Link href={`/roadmaps/${roadmap.slug}`}>
+                        <Button size="sm" variant="outline">
+                          Continue Learning
+                        </Button>
+                      </Link>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-medium">Frontend Development Fundamentals</h4>
-                    <p className="text-sm text-gray-500">HTML, CSS, JavaScript basics with visual progress</p>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <p className="text-gray-500 mb-4">No roadmaps available yet.</p>
+                  <Link href="/generate">
+                    <Button>Create Your First Roadmap</Button>
+                  </Link>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    75% Complete
-                  </Badge>
-                  <Button size="sm" variant="outline" onClick={() => setShowRoadmap(true)}>
-                    Continue Learning
-                  </Button>
-                </div>
-              </div>
+              )}
 
-              <div className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                    <BookOpen className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Python Developer Path</h4>
-                    <p className="text-sm text-gray-500">Python, Django, APIs with completion tracking</p>
-                  </div>
+              {roadmaps.length > 0 && (
+                <div className="text-center py-4 border-t">
+                  <Link href="/roadmaps">
+                    <Button variant="ghost" className="text-blue-600 hover:text-blue-700">
+                      View All Roadmaps
+                    </Button>
+                  </Link>
                 </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">
-                    45% Complete
-                  </Badge>
-                  <Button size="sm" variant="outline">
-                    Continue Learning
-                  </Button>
-                </div>
-              </div>
-
-              <div className="text-center py-4 border-t">
-                <Link href="/generate">
-                  <Button variant="ghost" className="text-blue-600 hover:text-blue-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Create New Roadmap
-                  </Button>
-                </Link>
-              </div>
+              )}
             </div>
           </CardContent>
         </Card>

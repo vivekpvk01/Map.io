@@ -52,13 +52,15 @@ export function GenerateForm({
     onGeneratingChange?.(true)
 
     try {
-      console.log("📤 Sending request to /api/genai...")
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+      console.log(`📤 Sending request to ${apiUrl}/roadmaps/generate...`)
 
-      const response = await fetch("/api/genai", {
+      const response = await fetch(`${apiUrl}/roadmaps/generate`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           goal: goal.trim(),
           experience: priorKnowledge,
@@ -69,7 +71,12 @@ export function GenerateForm({
 
       console.log("📥 Response status:", response.status)
 
-      const roadmapData = await response.json()
+      let roadmapData;
+      try {
+        roadmapData = await response.json()
+      } catch (e) {
+        throw new Error("Failed to parse response")
+      }
       console.log("📊 Response data:", roadmapData)
 
       if (!response.ok) {

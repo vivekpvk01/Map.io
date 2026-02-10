@@ -2,6 +2,7 @@
 
 import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
+import { useMounted } from "@/hooks/use-mounted"
 
 interface User {
   id: string
@@ -23,8 +24,11 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
+  const mounted = useMounted()
 
   useEffect(() => {
+    if (!mounted) return
+
     const checkAuth = async () => {
       try {
         const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
@@ -51,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     checkAuth()
-  }, [])
+  }, [mounted])
 
   const signIn = async (email: string, password: string) => {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
@@ -125,7 +129,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  return <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>{children}</AuthContext.Provider>
+  // Prevent hydration mismatch by returning children only after client-side hydration
+  // However, for AuthContext, we want to provide the context but maybe delay children that depend on it
+  // Better to let children render but they will see loading=true initially
+  return (
+    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+      {children}
+    </AuthContext.Provider>
+  )
 }
 
 export function useAuth() {

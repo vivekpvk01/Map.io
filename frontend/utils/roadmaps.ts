@@ -2,8 +2,8 @@ export interface Roadmap {
   title: string
   slug: string
   description: string
-  difficulty: string
-  type: string
+  difficulty: "Beginner" | "Intermediate" | "Advanced"
+  type: "official" | "community"
 }
 
 export const roadmapList: Roadmap[] = [
@@ -44,7 +44,7 @@ export const roadmapList: Roadmap[] = [
   },
   {
     title: "Data Scientist",
-    slug: "ai-data-scientist",
+    slug: "data-scientist",
     description: "Step by step guide to becoming a data scientist",
     difficulty: "Advanced",
     type: "official",
@@ -242,19 +242,15 @@ export function findRoadmapByQuery(query: string): Roadmap | null {
   const keyword = query.trim().toLowerCase()
   if (!keyword) return null
 
-  // First try exact match on slug
   let match = roadmapList.find((roadmap) => roadmap.slug.toLowerCase() === keyword)
   if (match) return match
 
-  // Then try exact match on title
   match = roadmapList.find((roadmap) => roadmap.title.toLowerCase() === keyword)
   if (match) return match
 
-  // Then try partial match on title
   match = roadmapList.find((roadmap) => roadmap.title.toLowerCase().includes(keyword))
   if (match) return match
 
-  // Finally try partial match on slug
   match = roadmapList.find((roadmap) => roadmap.slug.toLowerCase().includes(keyword))
   if (match) return match
 
