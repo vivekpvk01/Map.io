@@ -81,17 +81,20 @@ export default function Navbar() {
           ) : user ? (
             <div className="flex items-center space-x-3">
               {/* User Info */}
-              <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-blue-100 text-blue-600">
-                    <User className="h-4 w-4" />
-                  </AvatarFallback>
-                </Avatar>
-                <div className="hidden sm:block">
-                  <p className="text-sm font-medium">{user.name || "Demo User"}</p>
-                  <p className="text-xs text-muted-foreground">{user.email}</p>
+              <Link href="/dashboard">
+                <div className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition">
+                  <Avatar className="h-8 w-8">
+                    <AvatarFallback className="bg-blue-100 text-blue-600">
+                      <User className="h-4 w-4" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="hidden sm:block">
+                    <p className="text-sm font-medium">{user.name || "Demo User"}</p>
+                    <p className="text-xs text-muted-foreground">{user.email}</p>
+                  </div>
                 </div>
-              </div>
+              </Link>
+
 
               {/* Logout Button */}
               <Button

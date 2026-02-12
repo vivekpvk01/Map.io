@@ -1,6 +1,10 @@
 "use client"
 
-import type React from "react"
+import html2canvas from "html2canvas"
+import jsPDF from "jspdf"
+import { useRef } from "react"
+
+
 
 import { useState, useCallback, useEffect } from "react"
 import ReactFlow, {
@@ -72,6 +76,8 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
   const [selectedNode, setSelectedNode] = useState<RoadmapNode | null>(null)
   const [completedNodes, setCompletedNodes] = useState<Set<string>>(new Set())
   const [isLoadingProgress, setIsLoadingProgress] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
 
   // Load existing progress on mount
   useEffect(() => {
@@ -164,6 +170,49 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
   const onNodeClick = useCallback((event: React.MouseEvent, node: Node) => {
     setSelectedNode(node as RoadmapNode)
   }, [])
+  // ===== SHARE ROADMAP =====
+  const handleShare = async () => {
+    const url = window.location.href
+
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: roadmap.title,
+          text: roadmap.description,
+          url,
+        })
+      } else {
+        await navigator.clipboard.writeText(url)
+        alert("Roadmap link copied to clipboard!")
+      }
+    } catch (error) {
+      console.error("Share failed:", error)
+    }
+  }
+
+  // ===== DOWNLOAD PDF =====
+  const handleDownloadPDF = async () => {
+    if (!containerRef.current) return
+
+    try {
+      const canvas = await html2canvas(containerRef.current, {
+        scale: 2,
+        useCORS: true,
+      })
+
+      const imgData = canvas.toDataURL("image/png")
+      const pdf = new jsPDF("landscape", "mm", "a4")
+
+      const pdfWidth = pdf.internal.pageSize.getWidth()
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+      pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
+      pdf.save(`${roadmap.title.replace(/\s+/g, "-")}.pdf`)
+    } catch (error) {
+      console.error("PDF export failed:", error)
+    }
+  }
+
 
   const completionPercentage = Math.round((completedNodes.size / roadmap.nodes.length) * 100)
 
@@ -190,18 +239,15 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
               </div>
 
               <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Learning Time
-                </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" onClick={handleShare}>
                   <Share className="h-4 w-4 mr-2" />
                   Share
                 </Button>
+
               </div>
             </div>
 
@@ -215,7 +261,6 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
               </div>
 
               <div className="flex items-center space-x-4">
-                <div className="text-sm text-muted-foreground">Suggest Changes</div>
                 <div className="flex items-center space-x-2">
                   <Badge variant={completedNodes.size === 0 ? "secondary" : "default"}>
                     {completionPercentage}% DONE
@@ -225,7 +270,7 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
                   </span>
                   <Button variant="outline" size="sm">
                     <Circle className="h-4 w-4 mr-2" />
-                    Track Progress
+                    Progress
                   </Button>
                 </div>
               </div>
@@ -234,7 +279,7 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
         </div>
 
         {/* ReactFlow Canvas */}
-        <div className="flex-1 relative">
+        <div className="flex-1 relative" ref={containerRef}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -313,45 +358,45 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
                     </Button>
                   </div>
                 )) || (
-                  // Default resources if none provided
-                  <>
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div>
-                        <div className="font-medium text-gray-900">GeeksforGeeks</div>
-                        <div className="text-sm text-gray-600">Comprehensive tutorials and examples</div>
+                    // Default resources if none provided
+                    <>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div>
+                          <div className="font-medium text-gray-900">GeeksforGeeks</div>
+                          <div className="text-sm text-gray-600">Comprehensive tutorials and examples</div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="https://www.geeksforgeeks.org/" target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href="https://www.geeksforgeeks.org/" target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    </div>
 
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div>
-                        <div className="font-medium text-gray-900">W3Schools</div>
-                        <div className="text-sm text-gray-600">Interactive learning with examples</div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div>
+                          <div className="font-medium text-gray-900">W3Schools</div>
+                          <div className="text-sm text-gray-600">Interactive learning with examples</div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="https://www.w3schools.com/" target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href="https://www.w3schools.com/" target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    </div>
 
-                    <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
-                      <div>
-                        <div className="font-medium text-gray-900">JavaTpoint</div>
-                        <div className="text-sm text-gray-600">Detailed tutorials and concepts</div>
+                      <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                        <div>
+                          <div className="font-medium text-gray-900">JavaTpoint</div>
+                          <div className="text-sm text-gray-600">Detailed tutorials and concepts</div>
+                        </div>
+                        <Button variant="outline" size="sm" asChild>
+                          <a href="https://www.javatpoint.com/" target="_blank" rel="noopener noreferrer">
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
                       </div>
-                      <Button variant="outline" size="sm" asChild>
-                        <a href="https://www.javatpoint.com/" target="_blank" rel="noopener noreferrer">
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </Button>
-                    </div>
-                  </>
-                )}
+                    </>
+                  )}
               </div>
             </div>
 

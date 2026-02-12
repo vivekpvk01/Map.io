@@ -9,7 +9,7 @@
     "start": "next start"
   },
   "dependencies": {
-    "@aws-sdk/credential-providers": "latest",
+    "@aws-sdk/credential-providers": "^3.988.0",
     "@hookform/resolvers": "latest",
     "@radix-ui/react-accordion": "latest",
     "@radix-ui/react-alert-dialog": "latest",
@@ -46,9 +46,9 @@
     "date-fns": "4.1.0",
     "embla-carousel-react": "latest",
     "gcp-metadata": "latest",
-    "html2canvas": "latest",
+    "html2canvas": "^1.4.1",
     "input-otp": "latest",
-    "jspdf": "latest",
+    "jspdf": "^4.1.0",
     "lucide-react": "^0.454.0",
     "next": "^15.5.9",
     "next-themes": "latest",
