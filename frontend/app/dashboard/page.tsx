@@ -2,24 +2,42 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { EnhancedRoadmapViewer } from "@/components/roadmap/enhanced-roadmap-viewer"
 import Link from "next/link"
-import { User, BookOpen, Target, TrendingUp, Plus, Eye, LogOut } from "lucide-react"
+import {
+  BookOpen,
+  Target,
+  TrendingUp,
+  Plus,
+  Eye,
+  ArrowRight,
+} from "lucide-react"
 import { useAuth } from "@/app/providers/auth-provider"
 import { useMounted } from "@/hooks/use-mounted"
+
+interface DashboardData {
+  availableRoadmaps: number
+  skillsCompleted: number
+  overallProgress: number
+  recentActivity: any[]
+}
 
 export default function DashboardPage() {
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(true)
-  const [roadmaps, setRoadmaps] = useState<any[]>([])
-  const [authChecked, setAuthChecked] = useState(false)
+  const [dashboardData, setDashboardData] =
+    useState<DashboardData | null>(null)
+
   const router = useRouter()
   const mounted = useMounted()
-
-  const { user: authUser, loading: authLoading, signOut } = useAuth()
+  const { user: authUser, loading: authLoading } = useAuth()
 
   useEffect(() => {
     if (!mounted) return
@@ -27,48 +45,43 @@ export default function DashboardPage() {
     if (!authLoading) {
       if (authUser) {
         setUser(authUser)
-        setAuthChecked(true)
-        fetchData()
+        fetchDashboardData()
       } else {
         router.push("/login")
       }
     }
-  }, [authUser, authLoading, router, mounted])
+  }, [authUser, authLoading, mounted])
 
-  const fetchData = async () => {
+  const fetchDashboardData = async () => {
     try {
       setLoading(true)
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-      const response = await fetch(`${apiUrl}/roadmaps`, {
+
+      const apiUrl =
+        process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+      const response = await fetch(`${apiUrl}/dashboard`, {
         credentials: "include",
       })
-      if (response.ok) {
-        const result = await response.json()
-        if (result.success) {
-          setRoadmaps(result.data)
-        }
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch dashboard data")
+      }
+
+      const result = await response.json()
+
+      if (result.success) {
+        setDashboardData(result.data)
       }
     } catch (error) {
-      console.error("Failed to fetch dashboard data:", error)
+      console.error("Dashboard fetch error:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleLogout = async () => {
-    try {
-      await signOut()
-      router.push("/login")
-    } catch (error) {
-      console.error("Logout failed:", error)
-    }
-  }
-
-  // Prevent SSR Rendering of loading state to avoid hydration mismatch
   if (!mounted) return null
 
-  // Show loading state ONLY on client
-  if (authLoading || (loading && !authChecked)) {
+  if (authLoading || loading || !dashboardData) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -81,61 +94,69 @@ export default function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-
-
-      {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
+
+        {/* Welcome */}
         <div className="mb-8">
-          <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome back, {user?.name || "there"}! 👋</h2>
+          <h2 className="text-3xl font-bold text-gray-900 mb-2">
+            Welcome back, {user?.name || "there"}! 👋
+          </h2>
           <p className="text-gray-600">
-            Ready to continue your learning journey? Let's build some amazing skills together.
+            Ready to continue your learning journey?
           </p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+        {/* Stats */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Available Roadmaps</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Available Roadmaps
+              </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{roadmaps.length}</div>
-              <p className="text-xs text-muted-foreground">Official learning paths</p>
+              <div className="text-2xl font-bold">
+                {dashboardData.availableRoadmaps}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Official learning paths
+              </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Skills Completed</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Skills Completed
+              </CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0</div>
-              <p className="text-xs text-muted-foreground">Start learning today!</p>
+              <div className="text-2xl font-bold">
+                {dashboardData.skillsCompleted}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Fully completed roadmaps
+              </p>
             </CardContent>
           </Card>
 
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Learning Streak</CardTitle>
-              <BookOpen className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">1 day</div>
-              <p className="text-xs text-muted-foreground">Welcome aboard!</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Progress</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">
+                Overall Progress
+              </CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">0%</div>
-              <p className="text-xs text-muted-foreground">Overall completion</p>
+              <div className="text-2xl font-bold">
+                {dashboardData.overallProgress}%
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Across all roadmaps
+              </p>
             </CardContent>
           </Card>
         </div>
@@ -148,7 +169,9 @@ export default function DashboardPage() {
                 <Plus className="w-5 h-5" />
                 Generate New Roadmap
               </CardTitle>
-              <CardDescription>Create a personalized learning path with AI assistance</CardDescription>
+              <CardDescription>
+                Create a personalized learning path
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/generate">
@@ -164,7 +187,7 @@ export default function DashboardPage() {
                 Explore Roadmaps
               </CardTitle>
               <CardDescription>
-                Browse official roadmaps and choose your next goal
+                Browse official roadmaps
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -177,56 +200,47 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Recent Roadmaps */}
+        {/* Recent Activity */}
         <Card>
           <CardHeader>
-            <CardTitle>Your Learning Roadmaps</CardTitle>
-            <CardDescription>Continue where you left off</CardDescription>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>
+              Your latest roadmap interactions
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {roadmaps.length > 0 ? (
-                roadmaps.slice(0, 3).map((roadmap) => (
-                  <div key={roadmap._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                        <BookOpen className="w-5 h-5 text-blue-600" />
-                      </div>
+              {dashboardData.recentActivity.length > 0 ? (
+                dashboardData.recentActivity.map((activity: any) => (
+                  <Link
+                    key={activity._id}
+                    href={`/roadmaps/${activity.roadmapId}`}
+                  >
+                    <div className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50 transition-colors cursor-pointer">
                       <div>
-                        <h4 className="font-medium">{roadmap.title}</h4>
-                        <p className="text-sm text-gray-500">{roadmap.description}</p>
+                        <h4 className="font-medium capitalize">
+                          {activity.roadmapId.replace(/-/g, " ")}
+                        </h4>
+                        <p className="text-sm text-gray-500">
+                          Updated on{" "}
+                          {new Date(
+                            activity.updatedAt
+                          ).toLocaleDateString()}
+                        </p>
                       </div>
+                      <ArrowRight className="w-4 h-4 text-muted-foreground" />
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Link href={`/roadmaps/${roadmap.slug}`}>
-                        <Button size="sm" variant="outline">
-                          Continue Learning
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
+                  </Link>
                 ))
               ) : (
-                <div className="text-center py-8">
-                  <p className="text-gray-500 mb-4">No roadmaps available yet.</p>
-                  <Link href="/generate">
-                    <Button>Create Your First Roadmap</Button>
-                  </Link>
-                </div>
-              )}
-
-              {roadmaps.length > 0 && (
-                <div className="text-center py-4 border-t">
-                  <Link href="/roadmaps">
-                    <Button variant="ghost" className="text-blue-600 hover:text-blue-700">
-                      View All Roadmaps
-                    </Button>
-                  </Link>
-                </div>
+                <p className="text-gray-500 text-center">
+                  No recent activity yet.
+                </p>
               )}
             </div>
           </CardContent>
         </Card>
+
       </main>
     </div>
   )

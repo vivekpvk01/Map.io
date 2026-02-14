@@ -14,7 +14,7 @@ export function Hero() {
         </h1>
 
         <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-          roadmap.sh is a community effort to create roadmaps, guides and other educational content to help guide
+          ATLAS is a community effort to create roadmaps, guides and other educational content to help guide
           developers in picking up a path and guide their learnings.
         </p>
 
