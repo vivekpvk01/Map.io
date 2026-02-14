@@ -238,17 +238,57 @@ export function ReactFlowRoadmapViewer({ roadmap }: ReactFlowRoadmapViewerProps)
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2">
-                <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
-                  <Download className="h-4 w-4 mr-2" />
+              <div className="flex items-center space-x-3">
+
+                {/* Download Button - Premium Primary */}
+                <Button
+                  size="sm"
+                  onClick={handleDownloadPDF}
+                  className="
+      group
+      bg-blue-600 
+      hover:bg-blue-700 
+      text-white 
+      transition-all 
+      duration-300 
+      ease-out
+      hover:-translate-y-1 
+      hover:shadow-lg 
+      hover:shadow-blue-500/30
+      active:scale-95
+    "
+                >
+                  <Download className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:translate-y-0.5" />
                   Download
                 </Button>
-                <Button variant="outline" size="sm" onClick={handleShare}>
-                  <Share className="h-4 w-4 mr-2" />
+
+                {/* Share Button - Elegant Secondary */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleShare}
+                  className="
+      group
+      transition-all 
+      duration-300 
+      ease-out
+      hover:bg-black 
+      hover:text-white 
+      dark:hover:bg-white 
+      dark:hover:text-black
+      hover:-translate-y-1
+      hover:shadow-md
+      active:scale-95
+    "
+                >
+                  <Share className="h-4 w-4 mr-2 transition-transform duration-300 group-hover:rotate-12" />
                   Share
                 </Button>
 
               </div>
+
+
+
             </div>
 
             <div className="flex items-center justify-between mt-4">
