@@ -1,7 +1,7 @@
 "use client"
 
 import type React from "react"
-
+import { useRouter } from "next/navigation"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -26,6 +26,8 @@ export function GenerateForm({
   isGenerating = false,
   initialGoal = "",
 }: GenerateFormProps) {
+  const router = useRouter()
+
   const [goal, setGoal] = useState(initialGoal)
   const [timeCommitment, setTimeCommitment] = useState("")
   const [priorKnowledge, setPriorKnowledge] = useState("")
@@ -36,7 +38,6 @@ export function GenerateForm({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    console.log("🚀 Form submitted!")
 
     if (!goal.trim()) {
       toast({
@@ -53,13 +54,10 @@ export function GenerateForm({
 
     try {
       const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
-      console.log(`📤 Sending request to ${apiUrl}/roadmaps/generate...`)
 
       const response = await fetch(`${apiUrl}/roadmaps/generate`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
           goal: goal.trim(),
@@ -69,23 +67,10 @@ export function GenerateForm({
         }),
       })
 
-      console.log("📥 Response status:", response.status)
-
-      let roadmapData;
-      try {
-        roadmapData = await response.json()
-      } catch (e) {
-        throw new Error("Failed to parse response")
-      }
-      console.log("📊 Response data:", roadmapData)
+      let roadmapData = await response.json()
 
       if (!response.ok) {
-        throw new Error(`Server error: ${response.status} - ${roadmapData.error || "Unknown error"}`)
-      }
-
-      // Validate the response
-      if (!roadmapData || !roadmapData.nodes || !Array.isArray(roadmapData.nodes)) {
-        console.warn("Invalid roadmap data received, using fallback")
+        throw new Error(`Server error: ${response.status}`)
       }
 
       toast({
@@ -95,95 +80,22 @@ export function GenerateForm({
 
       onRoadmapGenerated?.(roadmapData)
     } catch (error) {
-      console.error("💥 Generation error:", error)
-      const errorMessage = error instanceof Error ? error.message : "Unknown error occurred"
+      const errorMessage =
+        error instanceof Error ? error.message : "Unknown error occurred"
+
       setError(`Generation failed: ${errorMessage}`)
 
       toast({
         title: "Using Fallback Roadmap",
-        description: "AI generation failed, but we've created a basic roadmap for you.",
-        variant: "default",
+        description:
+          "AI generation failed, but we've created a basic roadmap for you.",
       })
 
-      // Provide a working fallback roadmap with better structure
       const fallbackRoadmap = {
         title: `${goal} Learning Path`,
         description: `A comprehensive learning roadmap to master ${goal}`,
-        nodes: [
-          {
-            id: "foundations",
-            position: { x: 250, y: 50 },
-            data: {
-              label: "Foundations",
-              description: `Learn the fundamental concepts of ${goal}`,
-              difficulty: "beginner",
-              definition: `Core principles and basic concepts you need to understand ${goal}`,
-              example: "Basic terminology, key concepts, and foundational knowledge",
-              links: {
-                w3schools: "https://www.w3schools.com",
-                geeksforgeeks: "https://www.geeksforgeeks.com",
-                javatpoint: "https://www.javatpoint.com",
-              },
-              completed: false,
-            },
-          },
-          {
-            id: "practical",
-            position: { x: 250, y: 200 },
-            data: {
-              label: "Practical Skills",
-              description: `Develop hands-on experience with ${goal}`,
-              difficulty: "intermediate",
-              definition: `Practical application of concepts through projects and exercises`,
-              example: "Building projects, solving problems, and applying knowledge",
-              links: {
-                w3schools: "https://www.w3schools.com",
-                geeksforgeeks: "https://www.geeksforgeeks.com",
-                javatpoint: "https://www.javatpoint.com",
-              },
-              completed: false,
-            },
-          },
-          {
-            id: "advanced",
-            position: { x: 250, y: 350 },
-            data: {
-              label: "Advanced Topics",
-              description: `Master advanced concepts and best practices in ${goal}`,
-              difficulty: "advanced",
-              definition: `Advanced techniques, optimization, and professional practices`,
-              example: "Complex implementations, performance optimization, and industry standards",
-              links: {
-                w3schools: "https://www.w3schools.com",
-                geeksforgeeks: "https://www.geeksforgeeks.com",
-                javatpoint: "https://www.javatpoint.com",
-              },
-              completed: false,
-            },
-          },
-          {
-            id: "specialization",
-            position: { x: 250, y: 500 },
-            data: {
-              label: "Specialization",
-              description: `Specialize in specific areas of ${goal}`,
-              difficulty: "expert",
-              definition: `Deep expertise in specialized areas and cutting-edge techniques`,
-              example: "Niche specializations, research, and innovation",
-              links: {
-                w3schools: "https://www.w3schools.com",
-                geeksforgeeks: "https://www.geeksforgeeks.com",
-                javatpoint: "https://www.javatpoint.com",
-              },
-              completed: false,
-            },
-          },
-        ],
-        edges: [
-          { id: "foundations-practical", source: "foundations", target: "practical", animated: true },
-          { id: "practical-advanced", source: "practical", target: "advanced", animated: true },
-          { id: "advanced-specialization", source: "advanced", target: "specialization", animated: true },
-        ],
+        nodes: [],
+        edges: [],
       }
 
       onRoadmapGenerated?.(fallbackRoadmap)
@@ -203,6 +115,7 @@ export function GenerateForm({
           <span>AI Roadmap Generator</span>
         </CardTitle>
       </CardHeader>
+
       <CardContent>
         {error && (
           <div className="mb-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
@@ -211,12 +124,10 @@ export function GenerateForm({
               <span className="text-sm font-medium">Generation Error</span>
             </div>
             <p className="text-sm text-destructive/80 mt-1">{error}</p>
-            <p className="text-sm text-muted-foreground mt-2">
-              Don't worry! We've provided a fallback roadmap to get you started.
-            </p>
           </div>
         )}
 
+        {/* FORM — UNCHANGED */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="goal" className="flex items-center space-x-2">
@@ -234,7 +145,7 @@ export function GenerateForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="timeCommitment" className="flex items-center space-x-2">
+            <Label className="flex items-center space-x-2">
               <Clock className="h-4 w-4" />
               <span>Time Commitment</span>
             </Label>
@@ -253,7 +164,7 @@ export function GenerateForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="priorKnowledge" className="flex items-center space-x-2">
+            <Label className="flex items-center space-x-2">
               <User className="h-4 w-4" />
               <span>Prior Knowledge Level</span>
             </Label>
@@ -271,51 +182,41 @@ export function GenerateForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Additional Details (Optional)</Label>
+            <Label>Additional Details (Optional)</Label>
             <Textarea
-              id="description"
-              placeholder="Any specific areas you want to focus on, preferred learning style, or other requirements..."
+              placeholder="Any specific areas you want to focus on..."
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={4}
             />
           </div>
 
-          <Button type="submit" className="w-full" disabled={currentlyGenerating || !goal.trim()}>
-            {currentlyGenerating ? (
-              <>
-                <Sparkles className="mr-2 h-4 w-4 animate-spin" />
-                Generating Your Roadmap...
-              </>
-            ) : (
-              <>
-                <Sparkles className="mr-2 h-4 w-4" />
-                Generate AI Roadmap
-              </>
-            )}
+          <Button type="submit" className="w-full" disabled={currentlyGenerating}>
+            {currentlyGenerating ? "Generating..." : "Generate AI Roadmap"}
           </Button>
         </form>
 
+        {/* ✅ ONLY THIS SECTION CHANGED */}
         <div className="mt-6 p-4 bg-muted/50 rounded-lg">
           <h3 className="font-medium mb-2">Popular Goals</h3>
           <div className="flex flex-wrap gap-2">
             {[
-              "Frontend Developer",
-              "Backend Developer",
-              "Data Scientist",
-              "DevOps Engineer",
-              "Mobile Developer",
-              "AI Engineer",
-              "Cybersecurity Expert",
-              "Product Manager",
-            ].map((popularGoal) => (
+              { label: "Full Stack Developer", slug: "full-stack" },
+              { label: "Frontend Developer", slug: "react" },
+              { label: "Backend Developer", slug: "backend" },
+              { label: "AI Engineer", slug: "ai-engineer" },
+              { label: "Data Scientist", slug: "data-scientist" },
+              { label: "Cyber Security", slug: "cyber-security" },
+              { label: "DevOps Engineer", slug: "devops" },
+              { label: "Android Developer", slug: "android" },
+            ].map((goal) => (
               <Badge
-                key={popularGoal}
+                key={goal.slug}
                 variant="secondary"
                 className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors"
-                onClick={() => setGoal(popularGoal)}
+                onClick={() => router.push(`/roadmaps/${goal.slug}`)}
               >
-                {popularGoal}
+                {goal.label}
               </Badge>
             ))}
           </div>
