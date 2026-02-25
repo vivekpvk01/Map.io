@@ -105,10 +105,6 @@ export function EnhancedRoadmapViewer({ roadmap }: EnhancedRoadmapViewerProps) {
             </div>
 
             <div className="flex items-center space-x-2">
-              <Button variant="outline" size="sm" className="text-gray-700 border-gray-300">
-                <Calendar className="h-4 w-4 mr-2" />
-                Schedule Learning Time
-              </Button>
               <Button
                 variant="outline"
                 size="sm"
@@ -134,168 +130,86 @@ export function EnhancedRoadmapViewer({ roadmap }: EnhancedRoadmapViewerProps) {
           </div>
 
           {/* Progress */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-4">
-              <Badge className="bg-green-100 text-green-800 font-semibold">{completionPercentage}% DONE</Badge>
-              <span className="text-sm text-gray-600">
-                {completedNodes.size} of {roadmap.nodes.length} Done
-              </span>
-              <span className="text-sm text-blue-600 font-medium">💡 All resources are completely FREE!</span>
-            </div>
+          {/* Progress + Track Button */}
+          <div className="flex items-center justify-end space-x-4">
+            <Badge className="bg-green-100 text-green-800 font-semibold">
+              {completionPercentage}% DONE
+            </Badge>
+
+            <span className="text-sm text-gray-600">
+              {completedNodes.size} of {roadmap.nodes.length} Done
+            </span>
+
             <Button variant="outline" size="sm" className="text-gray-700">
-              <CheckCircle2 className="w-4 w-4 mr-2" />
+              <CheckCircle2 className="w-4 h-4 mr-2" />
               Track Progress
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="grid grid-cols-12 gap-6">
-          {/* Left Sidebar */}
-          <div className="col-span-3">
-            <Card className="mb-6">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-gray-900 mb-2">🎯 Learning Tips</h3>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• Double-click nodes to mark as complete</li>
-                  <li>• Completed nodes show green borders</li>
-                  <li>• Click nodes to see free resources</li>
-                  <li>• Progress is automatically saved</li>
-                </ul>
-              </CardContent>
-            </Card>
+      {/* Main Content - Full Width Canvas Like Predefined */}
+      <div className="w-full h-[1800px] relative bg-[radial-gradient(circle,#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
 
-            <Card className="bg-green-50 border-green-200">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-green-900 mb-2">🆓 100% Free Resources</h3>
-                <p className="text-sm text-green-700 mb-4">
-                  All learning materials are completely free - no paid courses or subscriptions required!
-                </p>
-              </CardContent>
-            </Card>
-          </div>
+        {/* SVG Connections */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none">
+          <defs>
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+              <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+            </marker>
+          </defs>
 
-          {/* Center - Roadmap Flow */}
-          <div className="col-span-6">
-            <div className="relative min-h-[800px] bg-white flex flex-col items-center">
-              {/* Roadmap Title */}
-              <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold text-gray-900">{roadmap.title} Learning Path</h2>
-                <p className="text-gray-600 mt-2">Double-click nodes to mark as complete</p>
-              </div>
+          {roadmap.edges.map((edge) => {
+            const sourceNode = roadmap.nodes.find((n) => n.id === edge.source)
+            const targetNode = roadmap.nodes.find((n) => n.id === edge.target)
 
-              {/* SVG for connections */}
-              <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{ zIndex: 1 }}>
-                <defs>
-                  <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-                    <polygon points="0 0, 10 3.5, 0 7" fill="#3b82f6" />
-                  </marker>
-                </defs>
-                {roadmap.edges.map((edge) => {
-                  const sourceNode = roadmap.nodes.find((n) => n.id === edge.source)
-                  const targetNode = roadmap.nodes.find((n) => n.id === edge.target)
+            if (!sourceNode || !targetNode) return null
 
-                  if (!sourceNode || !targetNode) return null
+            const x1 = sourceNode.position.x + 75
+            const y1 = sourceNode.position.y + 40
+            const x2 = targetNode.position.x + 75
+            const y2 = targetNode.position.y
 
-                  const x1 = sourceNode.position.x + 75
-                  const y1 = sourceNode.position.y + 40
-                  const x2 = targetNode.position.x + 75
-                  const y2 = targetNode.position.y
+            return (
+              <line
+                key={edge.id}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                stroke="#94a3b8"
+                strokeWidth="2"
+                markerEnd="url(#arrowhead)"
+              />
+            )
+          })}
+        </svg>
 
-                  return (
-                    <line
-                      key={edge.id}
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke="#3b82f6"
-                      strokeWidth="2"
-                      strokeDasharray="5,5"
-                      markerEnd="url(#arrowhead)"
-                    />
-                  )
-                })}
-              </svg>
-
-              {/* Render Nodes with Green Border for Completed */}
-              {roadmap.nodes.map((node) => (
-                <div
-                  key={node.id}
-                  className={`
-                    absolute cursor-pointer transition-all duration-300 hover:scale-105 z-10
-                    ${
-                      completedNodes.has(node.id)
-                        ? "bg-white border-2 border-green-500 shadow-lg shadow-green-200/50"
-                        : "bg-white border-2 border-gray-300 hover:border-gray-400"
-                    }
-                    rounded-lg px-6 py-3 font-semibold text-sm min-w-[150px] text-center
-                    shadow-lg hover:shadow-xl
-                  `}
-                  style={{
-                    left: node.position.x,
-                    top: node.position.y,
-                  }}
-                  onClick={() => onNodeClick(node)}
-                  onDoubleClick={() => onNodeDoubleClick(node)}
-                  title="Click for resources, Double-click to mark complete"
-                >
-                  <div className="flex items-center justify-center space-x-2">
-                    <span className="text-gray-900">{node.data.label}</span>
-                    {completedNodes.has(node.id) && <CheckCircle2 className="w-4 h-4 text-green-500" />}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">{node.data.difficulty}</div>
-                </div>
-              ))}
+        {/* Nodes */}
+        {roadmap.nodes.map((node) => (
+          <div
+            key={node.id}
+            className={`
+        absolute cursor-pointer transition-all duration-300 hover:scale-105 z-10
+        ${completedNodes.has(node.id)
+                ? "bg-white border-2 border-green-500 shadow-md"
+                : "bg-white border border-gray-300 hover:border-gray-400"
+              }
+        rounded-md px-5 py-3 font-medium text-sm text-center min-w-[160px]
+      `}
+            style={{
+              left: node.position.x,
+              top: node.position.y,
+            }}
+            onClick={() => onNodeClick(node)}
+            onDoubleClick={() => onNodeDoubleClick(node)}
+          >
+            <div className="text-gray-900">{node.data.label}</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {node.data.difficulty}
             </div>
           </div>
-
-          {/* Right Sidebar */}
-          <div className="col-span-3">
-            <Card className="bg-blue-50 border-blue-200">
-              <CardContent className="p-6 text-center">
-                <h3 className="font-semibold text-blue-900 mb-2">🚀 Ready to Start?</h3>
-                <p className="text-sm text-blue-700 mb-4">
-                  Begin with the first topic and work your way down the roadmap!
-                </p>
-                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-white">Start Learning</Button>
-              </CardContent>
-            </Card>
-
-            {/* Progress Summary */}
-            <Card className="mt-6 bg-green-50 border-green-200">
-              <CardContent className="p-6">
-                <h3 className="font-semibold text-green-900 mb-2">📈 Your Progress</h3>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span>Completed:</span>
-                    <span className="font-medium">
-                      {completedNodes.size}/{roadmap.nodes.length}
-                    </span>
-                  </div>
-                  <div className="w-full bg-green-200 rounded-full h-2">
-                    <div
-                      className="bg-green-500 h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${completionPercentage}%` }}
-                    ></div>
-                  </div>
-                  <p className="text-xs text-green-700 mt-2">Progress is automatically saved as you complete nodes!</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </div>
-
-      {/* Bottom Tip */}
-      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white px-4 py-2 rounded-lg text-sm flex items-center space-x-2">
-        <span className="bg-green-500 text-white px-2 py-1 rounded text-xs font-bold">TIP</span>
-        <span>Double-click any topic to mark it as completed (green border + checkmark)</span>
-        <Button variant="ghost" size="sm" className="text-white hover:text-gray-300 p-1">
-          <X className="w-4 h-4" />
-        </Button>
+        ))}
       </div>
 
       {/* Resource Panel */}

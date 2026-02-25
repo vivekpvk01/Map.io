@@ -99,10 +99,6 @@ export function RoadmapViewer({ roadmap }: RoadmapViewerProps) {
 
               <div className="flex items-center space-x-2">
                 <Button variant="outline" size="sm">
-                  <Calendar className="h-4 w-4 mr-2" />
-                  Schedule Learning Time
-                </Button>
-                <Button variant="outline" size="sm">
                   <Download className="h-4 w-4 mr-2" />
                   Download
                 </Button>
