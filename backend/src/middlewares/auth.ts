@@ -17,9 +17,17 @@ export function requireAuth(req: AuthRequest, res: Response, next: NextFunction)
     return res.status(401).json({ success: false, error: 'Not authenticated' })
   }
 
-  const payload = verifyJwt(token)
-  if (!payload) {
-    return res.status(401).json({ success: false, error: 'Invalid or expired token' })
+  const decoded = verifyJwt(token)
+
+  if (typeof decoded === "string") {
+    return res.status(401).json({ message: "Invalid token" })
+  }
+
+  const payload = decoded as {
+    id: string
+    email: string
+    name: string
+    role?: string
   }
 
   req.user = payload
@@ -33,9 +41,17 @@ export function requireAdmin(req: AuthRequest, res: Response, next: NextFunction
     return res.status(401).json({ success: false, error: 'Not authenticated' })
   }
 
-  const payload = verifyJwt(token)
-  if (!payload || payload.role !== 'admin') {
-    return res.status(403).json({ success: false, error: 'Admin role required' })
+  const decoded = verifyJwt(token)
+
+  if (typeof decoded === "string") {
+    return res.status(401).json({ message: "Invalid token" })
+  }
+
+  const payload = decoded as {
+    id: string
+    email: string
+    name: string
+    role?: string
   }
 
   req.user = payload

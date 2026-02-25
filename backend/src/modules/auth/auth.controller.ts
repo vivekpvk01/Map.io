@@ -4,6 +4,7 @@ import { User } from '../../models/User'
 import { signJwt } from '../../utils/jwt'
 import { signupSchema, signinSchema } from '../../utils/validators'
 import { env } from '../../config/env'
+import type { AuthRequest } from '../../middlewares/auth'
 
 export async function signup(req: Request, res: Response) {
   try {
@@ -87,7 +88,6 @@ export async function logout(req: Request, res: Response) {
 
 export async function me(req: Request, res: Response) {
   try {
-    const { AuthRequest } = await import('../../middlewares/auth')
     const authReq = req as AuthRequest
 
     if (!authReq.user) {
