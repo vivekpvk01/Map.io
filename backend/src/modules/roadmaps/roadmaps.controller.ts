@@ -1,5 +1,6 @@
 import { Request, Response } from "express"
 import { z } from "zod"
+import slugify from "slugify"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { env } from "../../config/env"
 
@@ -14,7 +15,7 @@ import { RoadmapEdge } from "../../models/RoadmapEdge"
 const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY)
 
 const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash"
+  model: "gemini-2.0-flash",
 })
 
 /* =========================================================
@@ -29,7 +30,7 @@ const GenerateSchema = z.object({
 })
 
 /* =========================================================
-   EXISTING ROADMAP CONTROLLERS (UNCHANGED)
+   EXISTING CONTROLLERS (UNCHANGED)
 ========================================================= */
 
 export async function getRoadmaps(req: Request, res: Response) {
@@ -147,24 +148,27 @@ export async function searchRoadmaps(req: Request, res: Response) {
 }
 
 /* =========================================================
-   GEMINI AI ROADMAP GENERATION
+   AI ROADMAP GENERATION (PRODUCTION GRADE)
 ========================================================= */
 
 export async function generateRoadmap(req: Request, res: Response) {
   try {
-    console.log("=== GENERATE ROADMAP CALLED ===")
-    console.log("Body:", req.body)
-
     const parsed = GenerateSchema.safeParse(req.body)
 
     if (!parsed.success) {
-      return res.status(400).json({ success: false, error: "Invalid input" })
+      return res.status(400).json({ success: false })
     }
 
-    const { goal, experience, time_commitment, description } = parsed.data
+    const { goal } = parsed.data
 
     const prompt = `
-Generate a structured learning roadmap in STRICT JSON format.
+You are a senior curriculum architect.
+
+Create a professional roadmap for:
+
+GOAL: ${goal}
+
+Return STRICT JSON.
 
 Structure:
 {
@@ -172,129 +176,102 @@ Structure:
   "description": string,
   "nodes": [
     {
-      "id": string,
       "label": string,
       "description": string,
-      "difficulty": "beginner" | "intermediate" | "advanced"
+      "difficulty": "beginner" | "intermediate" | "advanced",
+      "resources": [
+        { "label": string, "url": string, "type": "free" | "paid" }
+      ]
     }
   ],
   "edges": [
-    { "source": string, "target": string }
+    { "sourceIndex": number, "targetIndex": number }
   ]
 }
 
 Rules:
-- Minimum 6 nodes
-- Logical progression
-- No markdown
+- Minimum 8 nodes
+- Logical vertical progression
 - JSON only
-
-Goal: ${goal}
-Experience: ${experience || "Not specified"}
-Time Commitment: ${time_commitment || "Not specified"}
-Details: ${description || "None"}
 `
-
-    console.log("Sending prompt to Gemini...")
 
     const result = await model.generateContent(prompt)
     const response = await result.response
     let text = response.text().trim()
 
-    console.log("Gemini raw response:", text)
-
-    // Remove markdown if present
-    text = text.replace(/```json/g, "")
-    text = text.replace(/```/g, "").trim()
+    text = text.replace(/```json/g, "").replace(/```/g, "").trim()
 
     let parsedJSON
     try {
       parsedJSON = JSON.parse(text)
-    } catch (err) {
-      console.error("Invalid JSON from Gemini:", text)
-      throw new Error("AI returned invalid JSON")
+    } catch {
+      return res.status(500).json({
+        success: false,
+        error: "AI returned invalid JSON",
+      })
     }
 
-    /* ================= NORMALIZE NODES ================= */
+    const slug = slugify(parsedJSON.title || goal, {
+      lower: true,
+      strict: true,
+    })
 
-    /* ================= STRUCTURED LAYOUT ENGINE ================= */
+    /* ================= PROFESSIONAL LAYOUT ================= */
 
-    const slug = goal.toLowerCase().replace(/\s+/g, "-")
+    const CENTER_X = 500
+    const LEFT_X = 350
+    const RIGHT_X = 650
+    const Y_GAP = 150
 
-    const BASE_X = 400
-    const LEFT_X = 200
-    const RIGHT_X = 600
-    const Y_GAP = 140
+    const rawNodes = parsedJSON.nodes || []
 
-    const structuredNodes = (parsedJSON.nodes || []).map(
-      (node: any, index: number) => {
+    // Normalize IDs cleanly like predefined roadmaps
+    const normalizedNodes = rawNodes.map((node: any, index: number) => {
+      const id = `node-${index}`
 
-        // Layout logic:
-        // First 2 nodes centered (foundation)
-        // Then alternate left/right branches
-        let x = BASE_X
+      let x = CENTER_X
+      let y = index * Y_GAP
 
-        if (index >= 2) {
-          x = index % 2 === 0 ? LEFT_X : RIGHT_X
-        }
+      // Create structured branching similar to official roadmaps
+      if (index === 3) x = LEFT_X
+      if (index === 4) x = RIGHT_X
+      if (index >= 5) x = CENTER_X
 
-        return {
-          roadmapId: slug,
-          id: node.id || `node-${index}`,
-          position: {
-            x,
-            y: index * Y_GAP,
-          },
-          data: {
-            label: node.label || "Untitled",
-            description: node.description || "",
-            difficulty: node.difficulty || "beginner",
-            resources: [], // maintain structure like predefined
-          },
-        }
-      }
-    )
-
-    /* ================= STRUCTURED EDGES ================= */
-
-    const structuredEdges =
-      parsedJSON.edges?.map((edge: any, index: number) => ({
+      return {
         roadmapId: slug,
-        id: `e${index + 1}`,
-        source: edge.source,
-        target: edge.target,
-      })) || []
+        id,
+        position: { x, y },
+        data: {
+          label: node.label || "Untitled",
+          description: node.description || "",
+          difficulty: node.difficulty || "beginner",
+          resources: node.resources || [],
+        },
+      }
+    })
 
-    if (structuredNodes.length === 0) {
-      throw new Error("AI returned empty roadmap")
-    }
-
-    /* ================= NORMALIZE EDGES ================= */
-
+    // Build edges safely using index mapping
     const edges =
       parsedJSON.edges?.map((edge: any, index: number) => ({
-        id: `edge-${index}`,
-        source: edge.source,
-        target: edge.target,
-        animated: true,
+        roadmapId: slug,
+        id: `e${index}`,
+        source: `node-${edge.sourceIndex}`,
+        target: `node-${edge.targetIndex}`,
       })) || []
-
-    if (structuredNodes.length === 0) {
-      throw new Error("AI returned empty roadmap")
-    }
 
     return res.json({
       success: true,
       id: slug,
-      title: parsedJSON.title || `${goal} Learning Path`,
-      description:
-        parsedJSON.description || `A roadmap to master ${goal}`,
+      slug,
+      title: parsedJSON.title || goal,
+      description: parsedJSON.description || "",
       isOfficial: false,
-      nodes: structuredNodes,
-      edges: structuredEdges,
+      isAIGenerated: true,
+      nodes: normalizedNodes,
+      edges,
     })
   } catch (error) {
-    console.error("Generate roadmap error:", error)
+    console.error("AI roadmap generation error:", error)
 
     return res.status(500).json({
       success: false,
