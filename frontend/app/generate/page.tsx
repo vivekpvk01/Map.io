@@ -51,7 +51,7 @@ export default function GeneratePage() {
               </Button>
             </div>
             <div className="text-center mb-8">
-              <h1 className="text-4xl font-bold mb-4">🎉 Your Roadmap is Ready!</h1>
+              <h1 className="text-4xl font-bold mb-4">Your AI Generated Roadmap is Ready!</h1>
               <p className="text-xl text-muted-foreground">
                 Here's your personalized learning path for {roadmap.title}
               </p>

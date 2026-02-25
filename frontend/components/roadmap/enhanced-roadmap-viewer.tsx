@@ -1,35 +1,50 @@
 "use client"
+import { ExternalLink } from "lucide-react"
+import html2canvas from "html2canvas"
+import jsPDF from "jspdf"
+import { useRef, useState, useCallback, useEffect } from "react"
 
-import { useState, useCallback, useEffect } from "react"
+import ReactFlow, {
+  type Node,
+  addEdge,
+  type Connection,
+  useNodesState,
+  useEdgesState,
+  Controls,
+  Background,
+  BackgroundVariant,
+} from "reactflow"
+import "reactflow/dist/style.css"
+
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Calendar, Download, Share, ExternalLink, CheckCircle2, X } from "lucide-react"
+import { ArrowLeft, Download, Share, Circle, X } from "lucide-react"
 import Link from "next/link"
+import { CustomNode } from "./custom-node"
 
-interface Node {
+const nodeTypes = {
+  customNode: CustomNode,
+}
+
+interface RoadmapNode {
   id: string
-  type: string
   position: { x: number; y: number }
   data: {
     label: string
     description: string
     difficulty: string
-    highlighted?: boolean
-    resources?: Array<{
+    resources?: {
       title: string
       url: string
       type: string
-    }>
-    completed?: boolean
+    }[]
   }
 }
 
-interface Edge {
+interface RoadmapEdge {
   id: string
   source: string
   target: string
-  animated?: boolean
 }
 
 interface EnhancedRoadmapViewerProps {
@@ -37,258 +52,293 @@ interface EnhancedRoadmapViewerProps {
     id?: string
     title: string
     description: string
-    nodes: Node[]
-    edges: Edge[]
+    nodes: RoadmapNode[]
+    edges: RoadmapEdge[]
   }
 }
 
 export function EnhancedRoadmapViewer({ roadmap }: EnhancedRoadmapViewerProps) {
-  const [selectedNode, setSelectedNode] = useState<Node | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  const [nodes, setNodes, onNodesChange] = useNodesState([])
+  const [edges, setEdges, onEdgesChange] = useEdgesState([])
+  const [selectedNode, setSelectedNode] = useState<RoadmapNode | null>(null)
   const [completedNodes, setCompletedNodes] = useState<Set<string>>(new Set())
-  const [showResourcePanel, setShowResourcePanel] = useState(false)
 
-  // Load progress from localStorage on mount
+  /* ---------------------------------------------------- */
+  /*  FIX 1: Properly format AI nodes for ReactFlow     */
+  /* ---------------------------------------------------- */
   useEffect(() => {
-    const savedProgress = localStorage.getItem(`roadmap-progress-${roadmap.id}`)
-    if (savedProgress) {
-      try {
-        const progressData = JSON.parse(savedProgress)
-        setCompletedNodes(new Set(progressData.completedNodes || []))
-      } catch (error) {
-        console.error("Failed to load progress:", error)
-      }
-    }
-  }, [roadmap.id])
+    if (!roadmap?.nodes) return
 
-  // Save progress to localStorage whenever completedNodes changes
+    const formattedNodes = roadmap.nodes.map((n) => ({
+      ...n,
+      type: "customNode",
+    }))
+
+    setNodes(formattedNodes)
+    setEdges(roadmap.edges || [])
+  }, [roadmap, setNodes, setEdges])
+
+  /* ---------------------------------------------------- */
+  /*  Local Progress                                     */
+  /* ---------------------------------------------------- */
   useEffect(() => {
-    const progressData = {
-      completedNodes: Array.from(completedNodes),
-      lastUpdated: new Date().toISOString(),
+    if (!roadmap?.id) return
+    const saved = localStorage.getItem(`roadmap-progress-${roadmap.id}`)
+    if (saved) {
+      const parsed = JSON.parse(saved)
+      setCompletedNodes(new Set(parsed.completedNodes || []))
     }
-    localStorage.setItem(`roadmap-progress-${roadmap.id}`, JSON.stringify(progressData))
-  }, [completedNodes, roadmap.id])
+  }, [roadmap?.id])
 
-  const onNodeClick = useCallback((node: Node) => {
-    setSelectedNode(node)
-    setShowResourcePanel(true)
+  useEffect(() => {
+    if (!roadmap?.id) return
+    localStorage.setItem(
+      `roadmap-progress-${roadmap.id}`,
+      JSON.stringify({ completedNodes: Array.from(completedNodes) })
+    )
+  }, [completedNodes, roadmap?.id])
+
+  const onNodeClick = useCallback((_: any, node: Node) => {
+    setSelectedNode(node as any)
   }, [])
 
   const onNodeDoubleClick = useCallback(
-    (node: Node) => {
-      const newCompletedNodes = new Set(completedNodes)
-      if (completedNodes.has(node.id)) {
-        newCompletedNodes.delete(node.id)
-      } else {
-        newCompletedNodes.add(node.id)
-      }
-      setCompletedNodes(newCompletedNodes)
+    (_: any, node: Node) => {
+      const updated = new Set(completedNodes)
+      updated.has(node.id) ? updated.delete(node.id) : updated.add(node.id)
+      setCompletedNodes(updated)
     },
-    [completedNodes],
+    [completedNodes]
   )
 
-  const completionPercentage = Math.round((completedNodes.size / roadmap.nodes.length) * 100)
+  const onConnect = useCallback(
+    (params: Connection) => setEdges((eds) => addEdge(params, eds)),
+    [setEdges]
+  )
+
+  /* ---------------------------------------------------- */
+  /*  Share & Download                                   */
+  /* ---------------------------------------------------- */
+  const handleShare = async () => {
+    const url = window.location.href
+    if (navigator.share) {
+      await navigator.share({
+        title: roadmap.title,
+        text: roadmap.description,
+        url,
+      })
+    } else {
+      await navigator.clipboard.writeText(url)
+      alert("Link copied")
+    }
+  }
+
+  const handleDownloadPDF = async () => {
+    if (!containerRef.current) return
+
+    const canvas = await html2canvas(containerRef.current, {
+      scale: 2,
+      useCORS: true,
+    })
+
+    const imgData = canvas.toDataURL("image/png")
+    const pdf = new jsPDF("landscape", "mm", "a4")
+
+    const pdfWidth = pdf.internal.pageSize.getWidth()
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width
+
+    pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight)
+    pdf.save(`${roadmap.title.replace(/\s+/g, "-")}.pdf`)
+  }
+
+  /* ---------------------------------------------------- */
+  /*  FIX 2: Safe Progress Calculation                   */
+  /* ---------------------------------------------------- */
+  const totalNodes = nodes.length
+  const completionPercentage =
+    totalNodes === 0
+      ? 0
+      : Math.round((completedNodes.size / totalNodes) * 100)
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Header */}
-      <div className="border-b border-gray-200 bg-white">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+    <div className="flex flex-col min-h-screen">
+
+      {/* HEADER */}
+      <div className="border-b bg-background/95 backdrop-blur">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="sm" asChild className="text-gray-600 hover:text-gray-900">
+              <Button variant="ghost" size="sm" asChild>
                 <Link href="/dashboard">
                   <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Dashboard
+                  Back
                 </Link>
               </Button>
+
+              <div>
+                <h1 className="text-2xl font-bold">{roadmap.title}</h1>
+                <p className="text-muted-foreground">
+                  {roadmap.description}
+                </p>
+              </div>
             </div>
 
-            <div className="flex items-center space-x-2">
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-yellow-400 text-black border-yellow-400 hover:bg-yellow-500"
-              >
+            <div className="flex items-center space-x-3">
+              <Button size="sm" onClick={handleDownloadPDF}>
                 <Download className="h-4 w-4 mr-2" />
                 Download
               </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="bg-yellow-400 text-black border-yellow-400 hover:bg-yellow-500"
-              >
+
+              <Button variant="outline" size="sm" onClick={handleShare}>
                 <Share className="h-4 w-4 mr-2" />
                 Share
               </Button>
             </div>
           </div>
 
-          <div>
-            <h1 className="text-4xl font-bold text-gray-900 mb-2">{roadmap.title}</h1>
-            <p className="text-gray-600 text-lg mb-6">{roadmap.description}</p>
-          </div>
-
-          {/* Progress */}
-          {/* Progress + Track Button */}
-          <div className="flex items-center justify-end space-x-4">
-            <Badge className="bg-green-100 text-green-800 font-semibold">
+          <div className="flex justify-end mt-4 space-x-4 items-center">
+            <Badge>
               {completionPercentage}% DONE
             </Badge>
-
-            <span className="text-sm text-gray-600">
-              {completedNodes.size} of {roadmap.nodes.length} Done
+            <span className="text-sm text-muted-foreground">
+              {completedNodes.size} of {totalNodes}
             </span>
-
-            <Button variant="outline" size="sm" className="text-gray-700">
-              <CheckCircle2 className="w-4 h-4 mr-2" />
-              Track Progress
+            <Button variant="outline" size="sm">
+              <Circle className="h-4 w-4 mr-2" />
+              Progress
             </Button>
           </div>
         </div>
       </div>
 
-      {/* Main Content - Full Width Canvas Like Predefined */}
-      <div className="w-full h-[1800px] relative bg-[radial-gradient(circle,#e5e7eb_1px,transparent_1px)] [background-size:20px_20px]">
-
-        {/* SVG Connections */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none">
-          <defs>
-            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
-              <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
-            </marker>
-          </defs>
-
-          {roadmap.edges.map((edge) => {
-            const sourceNode = roadmap.nodes.find((n) => n.id === edge.source)
-            const targetNode = roadmap.nodes.find((n) => n.id === edge.target)
-
-            if (!sourceNode || !targetNode) return null
-
-            const x1 = sourceNode.position.x + 75
-            const y1 = sourceNode.position.y + 40
-            const x2 = targetNode.position.x + 75
-            const y2 = targetNode.position.y
-
-            return (
-              <line
-                key={edge.id}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                stroke="#94a3b8"
-                strokeWidth="2"
-                markerEnd="url(#arrowhead)"
-              />
-            )
-          })}
-        </svg>
-
-        {/* Nodes */}
-        {roadmap.nodes.map((node) => (
-          <div
-            key={node.id}
-            className={`
-        absolute cursor-pointer transition-all duration-300 hover:scale-105 z-10
-        ${completedNodes.has(node.id)
-                ? "bg-white border-2 border-green-500 shadow-md"
-                : "bg-white border border-gray-300 hover:border-gray-400"
-              }
-        rounded-md px-5 py-3 font-medium text-sm text-center min-w-[160px]
-      `}
-            style={{
-              left: node.position.x,
-              top: node.position.y,
-            }}
-            onClick={() => onNodeClick(node)}
-            onDoubleClick={() => onNodeDoubleClick(node)}
-          >
-            <div className="text-gray-900">{node.data.label}</div>
-            <div className="text-xs text-gray-500 mt-1">
-              {node.data.difficulty}
-            </div>
-          </div>
-        ))}
+      {/* FULL WIDTH REACTFLOW */}
+      {/* FULL WIDTH REACTFLOW */}
+      <div
+        className="w-full"
+        style={{ height: "calc(100vh - 160px)" }}
+        ref={containerRef}
+      >
+        <ReactFlow
+          nodes={nodes}
+          edges={edges}
+          onNodesChange={onNodesChange}
+          onEdgesChange={onEdgesChange}
+          onNodeClick={onNodeClick}
+          onNodeDoubleClick={onNodeDoubleClick}
+          onConnect={onConnect}
+          nodeTypes={nodeTypes}
+          fitView
+          className="bg-gray-50"
+        >
+          <Controls />
+          <Background variant={BackgroundVariant.Dots} gap={20} size={1} />
+        </ReactFlow>
       </div>
 
-      {/* Resource Panel */}
-      {showResourcePanel && selectedNode && (
-        <div className="fixed right-0 top-0 h-full w-96 bg-white border-l border-gray-200 shadow-xl z-50 overflow-y-auto">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-2xl font-bold text-gray-900">{selectedNode.data.label}</h2>
+      {/* FULL HEIGHT SIDE PANEL */}
+      {selectedNode && (
+        <div className="fixed top-0 right-0 h-screen w-[420px] bg-background shadow-2xl z-50 overflow-y-auto border-l">
+          <div className="p-8">
+
+            {/* Header */}
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h2 className="text-2xl font-bold text-foreground">
+                  {selectedNode.data.label}
+                </h2>
+                <p className="text-muted-foreground mt-2">
+                  {selectedNode.data.description}
+                </p>
+              </div>
+
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowResourcePanel(false)}
-                className="text-gray-500 hover:text-gray-700"
+                onClick={() => setSelectedNode(null)}
               >
-                <X className="w-5 h-5" />
+                <X className="h-4 w-4" />
               </Button>
             </div>
 
-            <p className="text-gray-600 mb-6">{selectedNode.data.description}</p>
-
-            <div className="space-y-6">
-              {/* Free Resources */}
-              <div>
-                <div className="flex items-center mb-3">
-                  <Badge className="bg-green-100 text-green-800 mr-2">🆓 Free Resources</Badge>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">FreeCodeCamp</div>
-                      <div className="text-sm text-gray-600">Interactive tutorials</div>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href="https://www.freecodecamp.org" target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">MDN Web Docs</div>
-                      <div className="text-sm text-gray-600">Official documentation</div>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a href="https://developer.mozilla.org" target="_blank" rel="noopener noreferrer">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
-                    <div>
-                      <div className="font-medium text-gray-900">YouTube Tutorials</div>
-                      <div className="text-sm text-gray-600">Video lessons</div>
-                    </div>
-                    <Button variant="outline" size="sm" asChild>
-                      <a
-                        href={`https://www.youtube.com/results?search_query=${selectedNode.data.label}+tutorial`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              {/* Completion Status */}
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-gray-900 mb-2">
-                  {completedNodes.has(selectedNode.id) ? "✅ Completed!" : "📚 In Progress"}
-                </h3>
-                <p className="text-sm text-gray-600">
-                  {completedNodes.has(selectedNode.id)
-                    ? "Great job! You've marked this topic as complete. Keep up the momentum!"
-                    : "Double-click this node to mark it as complete when you're done learning."}
-                </p>
-              </div>
+            {/* WHAT YOU'LL LEARN */}
+            <div className="mb-8">
+              <h3 className="font-semibold text-lg mb-2">
+                What you'll learn
+              </h3>
+              <p className="text-muted-foreground leading-relaxed">
+                {selectedNode.data.description}
+              </p>
             </div>
+
+            {/* FREE RESOURCES BADGE */}
+            <div className="mb-6">
+              <Badge className="bg-green-100 text-green-800 px-3 py-1 rounded-full">
+                Free Resources
+              </Badge>
+            </div>
+
+            {/* RESOURCE LIST STYLE LIKE 2ND IMAGE */}
+            <div className="space-y-4 mb-10">
+
+              {/* FREE */}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+                <span className="text-sm font-medium">Free Resource</span>
+                <Button variant="outline" size="icon" asChild>
+                  <a
+                    href={selectedNode.data.resources?.[0]?.url || "#"}
+                    target="_blank"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+
+              {/* PAID */}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+                <span className="text-sm font-medium">Paid Course</span>
+                <Button variant="outline" size="icon" asChild>
+                  <a
+                    href={selectedNode.data.resources?.[1]?.url || "#"}
+                    target="_blank"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+
+              {/* YOUTUBE */}
+              <div className="flex items-center justify-between p-4 bg-muted rounded-xl">
+                <span className="text-sm font-medium">
+                  YouTube Playlist / Channel
+                </span>
+                <Button variant="outline" size="icon" asChild>
+                  <a
+                    href={selectedNode.data.resources?.[2]?.url || "#"}
+                    target="_blank"
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                  </a>
+                </Button>
+              </div>
+
+            </div>
+
+            {/* LEARNING TIPS */}
+            <div>
+              <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+                💡 Learning Tips
+              </h3>
+
+              <ul className="space-y-3 text-muted-foreground text-sm">
+                <li>• Start with the basics and build your understanding gradually</li>
+                <li>• Practice with hands-on examples and projects</li>
+                <li>• Join communities and forums for support</li>
+                <li>• Don't rush — take time to understand each concept</li>
+              </ul>
+            </div>
+
           </div>
         </div>
       )}
