@@ -16,7 +16,7 @@ import {
   Maximize,
 } from "lucide-react"
 import Link from "next/link"
-import { NodeInfoPanel } from "./node-info-panel"
+import NodeInfoPanel from "./node-info-panel"
 import { exportToPDF, exportToMarkdown, exportToJSON } from "@/lib/export-utils"
 
 interface Node {

@@ -3,24 +3,38 @@ import type { Node } from "reactflow"
 import { ExternalLink } from "lucide-react"
 
 interface NodeInfoPanelProps {
-  selectedNode: Node<any> | null
+  node: {
+    id: string
+    data: {
+      label: string
+      description: string
+      resources?: {
+        title: string
+        url: string
+        type: string
+      }[]
+    }
+  }
+  onClose: () => void
+  isCompleted: boolean
+  onToggleComplete: () => void
 }
 
-const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ selectedNode }) => {
-  if (!selectedNode) {
+const NodeInfoPanel: React.FC<NodeInfoPanelProps> = ({ node }) => {
+  if (!node) {
     return <div className="p-4">Select a node to view details.</div>
   }
 
   return (
     <div className="p-4 space-y-4">
-      <h2 className="text-xl font-semibold">{selectedNode.data.label}</h2>
-      <p className="text-gray-600 dark:text-gray-400">{selectedNode.data.description}</p>
+      <h2 className="text-xl font-semibold">{node.data.label}</h2>
+      <p className="text-gray-600 dark:text-gray-400">{node.data.description}</p>
 
-      {selectedNode.data.resources && (
+      {node.data.resources && (
         <div className="space-y-3">
           <h3 className="text-lg font-semibold">Free Resources</h3>
           <div className="space-y-2">
-            {selectedNode.data.resources.map((resource, index) => (
+            {node.data.resources.map((resource: any, index: any) => (
               <a
                 key={index}
                 href={resource.url}

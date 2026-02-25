@@ -1,6 +1,6 @@
 "use client"
 
-import { Navbar } from "@/components/navbar"
+import Navbar from "@/components/layout/navbar"
 import { RoadmapGrid } from "@/components/home/roadmap-grid"
 import { Footer } from "@/components/footer"
 
