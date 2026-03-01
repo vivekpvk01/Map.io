@@ -24,9 +24,13 @@ export function LoginForm() {
     setError("")
 
     try {
+      console.log("1. About to call signIn")
       await signIn(email.trim().toLowerCase(), password)
-      router.push("/dashboard")
+      console.log("2. signIn finished")
+      router.replace("/dashboard")
+      console.log("3. router.replace executed")
     } catch (err: any) {
+      console.error("Login error:", err)
       setError(err.message || "Invalid email or password")
     } finally {
       setIsLoading(false)
