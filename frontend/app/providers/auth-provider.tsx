@@ -26,98 +26,97 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const mounted = useMounted()
 
+  const apiUrl =
+    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+
+  // 🔥 Always resolve user from backend using token
+  const fetchCurrentUser = async () => {
+    try {
+      const response = await fetch(`${apiUrl}/auth/me`, {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        setUser(null)
+        return
+      }
+
+      const result = await response.json()
+
+      if (result.success && result.data) {
+        setUser({
+          id: result.data._id || result.data.id,
+          email: result.data.email,
+          name: result.data.name,
+          role: result.data.role,
+        })
+      } else {
+        setUser(null)
+      }
+    } catch (error) {
+      console.error("Auth check failed:", error)
+      setUser(null)
+    }
+  }
+
+  // 🔹 On initial load
   useEffect(() => {
     if (!mounted) return
 
-    const checkAuth = async () => {
-      try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-        const response = await fetch(`${apiUrl}/auth/me`, {
-          credentials: "include",
-        })
-
-        if (response.ok) {
-          const result = await response.json()
-          if (result.success && result.data) {
-            setUser({
-              id: result.data._id || result.data.id,
-              email: result.data.email,
-              name: result.data.name,
-              role: result.data.role,
-            })
-          }
-        }
-      } catch (error) {
-        console.error("Auth check failed:", error)
-      } finally {
-        setLoading(false)
-      }
+    const initAuth = async () => {
+      await fetchCurrentUser()
+      setLoading(false)
     }
 
-    checkAuth()
+    initAuth()
   }, [mounted])
 
+  // 🔐 SIGN IN
   const signIn = async (email: string, password: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-    const response = await fetch(`${apiUrl}/auth/signin`, {
+    const loginRes = await fetch(`${apiUrl}/auth/signin`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password,
+      }),
     })
 
-    if (!response.ok) {
-      const error = await response.json()
+    if (!loginRes.ok) {
+      const error = await loginRes.json()
       throw new Error(error.error || "Sign in failed")
     }
 
-    const result = await response.json()
-    if (result.success && result.data) {
-      setUser({
-        id: result.data.id,
-        email: result.data.email,
-        name: result.data.name,
-        role: result.data.role,
-      })
-    } else {
-      throw new Error("Sign in failed")
-    }
+    // ✅ Always re-fetch real user from backend
+    await fetchCurrentUser()
   }
 
+  // 📝 SIGN UP
   const signUp = async (email: string, password: string, name: string) => {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
-    const response = await fetch(`${apiUrl}/auth/signup`, {
+    const signupRes = await fetch(`${apiUrl}/auth/signup`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({
+        email: email.trim().toLowerCase(),
+        password,
+        name,
+      }),
     })
 
-    if (!response.ok) {
-      const error = await response.json()
+    if (!signupRes.ok) {
+      const error = await signupRes.json()
       throw new Error(error.error || "Sign up failed")
     }
 
-    const result = await response.json()
-    if (result.success && result.data) {
-      setUser({
-        id: result.data.id,
-        email: result.data.email,
-        name: result.data.name,
-        role: result.data.role,
-      })
-    } else {
-      throw new Error("Sign up failed")
-    }
+    // ✅ Always re-fetch correct user
+    await fetchCurrentUser()
   }
 
+  // 🚪 SIGN OUT
   const signOut = async () => {
     try {
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api'
       await fetch(`${apiUrl}/auth/logout`, {
         method: "POST",
         credentials: "include",
@@ -129,11 +128,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  // Prevent hydration mismatch by returning children only after client-side hydration
-  // However, for AuthContext, we want to provide the context but maybe delay children that depend on it
-  // Better to let children render but they will see loading=true initially
   return (
-    <AuthContext.Provider value={{ user, loading, signIn, signUp, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        signIn,
+        signUp,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   )
@@ -146,4 +150,3 @@ export function useAuth() {
   }
   return context
 }
-
