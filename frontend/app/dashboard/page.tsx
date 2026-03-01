@@ -63,16 +63,37 @@ export default function DashboardPage() {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to fetch dashboard data")
+        // 🔥 If new user has no data yet
+        setDashboardData({
+          availableRoadmaps: 0,
+          skillsCompleted: 0,
+          overallProgress: 0,
+          recentActivity: [],
+        })
+        return
       }
 
       const result = await response.json()
 
       if (result.success) {
         setDashboardData(result.data)
+      } else {
+        setDashboardData({
+          availableRoadmaps: 0,
+          skillsCompleted: 0,
+          overallProgress: 0,
+          recentActivity: [],
+        })
       }
     } catch (error) {
       console.error("Dashboard fetch error:", error)
+
+      setDashboardData({
+        availableRoadmaps: 0,
+        skillsCompleted: 0,
+        overallProgress: 0,
+        recentActivity: [],
+      })
     } finally {
       setLoading(false)
     }
@@ -80,7 +101,7 @@ export default function DashboardPage() {
 
   if (!mounted) return null
 
-  if (authLoading || loading || !dashboardData) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
