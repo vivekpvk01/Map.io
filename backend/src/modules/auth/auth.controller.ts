@@ -10,7 +10,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
   sameSite: "none" as const,
-  domain: ".getatlas.tech",   // IMPORTANT
+  domain: ".getatlas.tech",
   path: "/",
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
 }
@@ -26,8 +26,6 @@ export async function signup(req: Request, res: Response) {
     }
 
     const { name, email, password } = parse.data
-
-    // ✅ Normalize email
     const normalizedEmail = email.trim().toLowerCase()
 
     const existing = await User.findOne({ email: normalizedEmail })
@@ -46,12 +44,11 @@ export async function signup(req: Request, res: Response) {
       passwordHash,
     })
 
-    // ✅ Non-blocking welcome email
+    // Send welcome email (non-blocking)
     sendWelcomeEmail(user.email, user.name).catch((err) =>
       console.error("Welcome email failed:", err)
     )
 
-    // ✅ Minimal JWT payload
     const token = signJwt({
       id: user._id.toString(),
       role: user.role,
@@ -88,8 +85,6 @@ export async function signin(req: Request, res: Response) {
     }
 
     const { email, password } = parse.data
-
-    // ✅ Normalize email
     const normalizedEmail = email.trim().toLowerCase()
 
     const user = await User.findOne({ email: normalizedEmail })
@@ -100,7 +95,6 @@ export async function signin(req: Request, res: Response) {
       })
     }
 
-    // ✅ Minimal JWT payload
     const token = signJwt({
       id: user._id.toString(),
       role: user.role,
@@ -127,15 +121,6 @@ export async function signin(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  res.clearCookie("auth-token", COOKIE_OPTIONS)
-
-  return res.json({
-    success: true,
-    message: "Logged out successfully",
-  })
-}
-
-export async function logout(req: Request, res: Response) {
   res.clearCookie("auth-token", {
     ...COOKIE_OPTIONS,
     maxAge: 0,
@@ -147,25 +132,36 @@ export async function logout(req: Request, res: Response) {
   })
 }
 
-const user = await User.findById(authReq.user.id)
-  .select("name email role createdAt")
+export async function me(req: Request, res: Response) {
+  try {
+    const authReq = req as AuthRequest
 
-if (!user) {
-  return res.status(404).json({
-    success: false,
-    error: "User not found",
-  })
-}
+    if (!authReq.user) {
+      return res.status(401).json({
+        success: false,
+        error: "Not authenticated",
+      })
+    }
 
-return res.json({
-  success: true,
-  data: user,
-})
+    const user = await User.findById(authReq.user.id)
+      .select("name email role createdAt")
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found",
+      })
+    }
+
+    return res.json({
+      success: true,
+      data: user,
+    })
   } catch (error) {
-  console.error("Me error:", error)
-  return res.status(500).json({
-    success: false,
-    error: "Internal server error",
-  })
-}
+    console.error("Me error:", error)
+    return res.status(500).json({
+      success: false,
+      error: "Internal server error",
+    })
+  }
 }
