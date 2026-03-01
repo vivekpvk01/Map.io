@@ -128,6 +128,7 @@ export async function logout(req: Request, res: Response) {
     httpOnly: true,
     secure: true,
     sameSite: "none",
+    domain: ".getatlas.tech",   // MUST match
     path: "/",
   })
 
