@@ -1,16 +1,35 @@
 "use client"
 
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { useAuth } from "@/app/providers/auth-provider"
 import { LoginForm } from "@/components/auth/login-form"
 
 export default function LoginPage() {
+  const { user, loading } = useAuth()
+  const router = useRouter()
+
+  useEffect(() => {
+    if (!loading && user) {
+      router.replace("/dashboard")
+    }
+  }, [user, loading, router])
+
+  if (loading) return null
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50">
       <div className="max-w-md w-full space-y-8">
         <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">Sign in to your account</h2>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Sign in to your account
+          </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Or{" "}
-            <a href="/signup" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <a
+              href="/signup"
+              className="font-medium text-indigo-600 hover:text-indigo-500"
+            >
               create a new account
             </a>
           </p>
