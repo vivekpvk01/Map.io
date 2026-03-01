@@ -23,6 +23,7 @@ export function createApp(): Express {
     origin: [
       "https://getatlas.tech",
       "https://www.getatlas.tech",
+      "https://map-jpurb19v0-pinipevivek01-2862s-projects.vercel.app",
     ],
     credentials: true,
   }));
