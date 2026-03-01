@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import {
   Card,
   CardContent,
@@ -12,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button"
 import Link from "next/link"
 import {
-  BookOpen,
   Target,
   TrendingUp,
   Plus,
@@ -30,25 +28,25 @@ interface DashboardData {
 }
 
 export default function DashboardPage() {
-  const [user, setUser] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [dashboardData, setDashboardData] =
-    useState<DashboardData | null>(null)
-
-  const router = useRouter()
   const mounted = useMounted()
   const { user: authUser, loading: authLoading } = useAuth()
+
+  const [loading, setLoading] = useState(true)
+
+  // ✅ Always initialize with safe defaults (no null)
+  const [dashboardData, setDashboardData] = useState<DashboardData>({
+    availableRoadmaps: 0,
+    skillsCompleted: 0,
+    overallProgress: 0,
+    recentActivity: [],
+  })
 
   useEffect(() => {
     if (!mounted) return
     if (authLoading) return
-
-    // 🚫 REMOVE redirect completely
     if (!authUser) return
 
-    setUser(authUser)
     fetchDashboardData()
-
   }, [authUser, authLoading, mounted])
 
   const fetchDashboardData = async () => {
@@ -63,37 +61,17 @@ export default function DashboardPage() {
       })
 
       if (!response.ok) {
-        // 🔥 If new user has no data yet
-        setDashboardData({
-          availableRoadmaps: 0,
-          skillsCompleted: 0,
-          overallProgress: 0,
-          recentActivity: [],
-        })
+        // New users might not have data yet
         return
       }
 
       const result = await response.json()
 
-      if (result.success) {
+      if (result.success && result.data) {
         setDashboardData(result.data)
-      } else {
-        setDashboardData({
-          availableRoadmaps: 0,
-          skillsCompleted: 0,
-          overallProgress: 0,
-          recentActivity: [],
-        })
       }
     } catch (error) {
       console.error("Dashboard fetch error:", error)
-
-      setDashboardData({
-        availableRoadmaps: 0,
-        skillsCompleted: 0,
-        overallProgress: 0,
-        recentActivity: [],
-      })
     } finally {
       setLoading(false)
     }
@@ -101,6 +79,7 @@ export default function DashboardPage() {
 
   if (!mounted) return null
 
+  // ✅ Only depend on authLoading + loading
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -119,7 +98,7 @@ export default function DashboardPage() {
         {/* Welcome */}
         <div className="mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
-            Welcome back, {user?.name || "there"}! 👋
+            Welcome back, {authUser?.name || "there"}! 👋
           </h2>
           <p className="text-gray-600">
             Ready to continue your learning journey?
