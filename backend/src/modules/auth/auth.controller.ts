@@ -25,9 +25,9 @@ export async function signup(req: Request, res: Response) {
 
     res.cookie('auth-token', token, {
       httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 * 1000, // 7 days
+      secure: true,        // MUST be true for HTTPS
+      sameSite: 'none',    // REQUIRED for cross-domain
+      maxAge: 60 * 60 * 24 * 7 * 1000,
       path: '/',
     })
 
@@ -58,9 +58,9 @@ export async function signin(req: Request, res: Response) {
 
     res.cookie('auth-token', token, {
       httpOnly: true,
-      secure: env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      maxAge: 60 * 60 * 24 * 7 * 1000, // 7 days
+      secure: true,        // MUST be true for HTTPS
+      sameSite: 'none',    // REQUIRED for cross-domain
+      maxAge: 60 * 60 * 24 * 7 * 1000,
       path: '/',
     })
 
@@ -77,8 +77,8 @@ export async function signin(req: Request, res: Response) {
 export async function logout(req: Request, res: Response) {
   res.cookie('auth-token', '', {
     httpOnly: true,
-    secure: env.NODE_ENV === 'production',
-    sameSite: 'lax',
+    secure: true,
+    sameSite: 'none',
     maxAge: 0,
     path: '/',
   })

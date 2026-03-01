@@ -8,6 +8,7 @@ export function createApp(): Express {
   const app = express()
 
   // Middleware
+
   app.use(
     cors({
       origin: env.FRONTEND_URL,
