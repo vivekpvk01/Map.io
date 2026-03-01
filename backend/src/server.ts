@@ -1,25 +1,23 @@
-import { createApp } from './app'
-import { connectDB } from './config/db'
-import { env } from './config/env'
+import { createApp } from "./app"
+import { connectDB } from "./config/db"
+import { env } from "./config/env"
 
 async function startServer() {
   try {
-    // Connect to database
     await connectDB()
 
-    // Create Express app
     const app = createApp()
 
-    // Start server
-    app.listen(env.PORT, () => {
-      console.log(`🚀 Backend server running on http://localhost:${env.PORT}`)
-      console.log(`📡 API available at http://localhost:${env.PORT}/api`)
+    const port = process.env.PORT || env.PORT || 5000
+
+    app.listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`)
+      console.log(`📡 API available at /api`)
     })
   } catch (error) {
-    console.error('❌ Failed to start server:', error)
+    console.error("❌ Failed to start server:", error)
     process.exit(1)
   }
 }
 
 startServer()
-
