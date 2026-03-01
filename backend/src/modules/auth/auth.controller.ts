@@ -10,7 +10,7 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
   sameSite: "none" as const,
-  domain: ".getatlas.tech",
+  domain: ".getatlas.tech",   // IMPORTANT
   path: "/",
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
 }
@@ -26,6 +26,8 @@ export async function signup(req: Request, res: Response) {
     }
 
     const { name, email, password } = parse.data
+
+    // ✅ Normalize email
     const normalizedEmail = email.trim().toLowerCase()
 
     const existing = await User.findOne({ email: normalizedEmail })
@@ -44,11 +46,12 @@ export async function signup(req: Request, res: Response) {
       passwordHash,
     })
 
-    // Send welcome email (non-blocking)
+    // ✅ Non-blocking welcome email
     sendWelcomeEmail(user.email, user.name).catch((err) =>
       console.error("Welcome email failed:", err)
     )
 
+    // ✅ Minimal JWT payload
     const token = signJwt({
       id: user._id.toString(),
       role: user.role,
@@ -85,6 +88,8 @@ export async function signin(req: Request, res: Response) {
     }
 
     const { email, password } = parse.data
+
+    // ✅ Normalize email
     const normalizedEmail = email.trim().toLowerCase()
 
     const user = await User.findOne({ email: normalizedEmail })
@@ -95,6 +100,7 @@ export async function signin(req: Request, res: Response) {
       })
     }
 
+    // ✅ Minimal JWT payload
     const token = signJwt({
       id: user._id.toString(),
       role: user.role,
@@ -121,10 +127,7 @@ export async function signin(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  res.clearCookie("auth-token", {
-    ...COOKIE_OPTIONS,
-    maxAge: 0,
-  })
+  res.clearCookie("auth-token", COOKIE_OPTIONS)
 
   return res.json({
     success: true,
@@ -153,6 +156,12 @@ export async function me(req: Request, res: Response) {
       })
     }
 
+    // 🔥 CRITICAL: Disable caching completely
+    res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
+    res.setHeader("Pragma", "no-cache")
+    res.setHeader("Expires", "0")
+    res.setHeader("Surrogate-Control", "no-store")
+
     return res.json({
       success: true,
       data: user,
@@ -164,4 +173,27 @@ export async function me(req: Request, res: Response) {
       error: "Internal server error",
     })
   }
+}
+
+const user = await User.findById(authReq.user.id)
+  .select("name email role createdAt")
+
+if (!user) {
+  return res.status(404).json({
+    success: false,
+    error: "User not found",
+  })
+}
+
+return res.json({
+  success: true,
+  data: user,
+})
+  } catch (error) {
+  console.error("Me error:", error)
+  return res.status(500).json({
+    success: false,
+    error: "Internal server error",
+  })
+}
 }
