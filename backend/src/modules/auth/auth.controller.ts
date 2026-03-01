@@ -10,7 +10,6 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
   sameSite: "none" as const,
-  domain: ".getatlas.tech",   // IMPORTANT
   path: "/",
   maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
 }
@@ -18,6 +17,7 @@ const COOKIE_OPTIONS = {
 export async function signup(req: Request, res: Response) {
   try {
     const parse = signupSchema.safeParse(req.body)
+
     if (!parse.success) {
       return res.status(400).json({
         success: false,
@@ -26,8 +26,6 @@ export async function signup(req: Request, res: Response) {
     }
 
     const { name, email, password } = parse.data
-
-    // ✅ Normalize email
     const normalizedEmail = email.trim().toLowerCase()
 
     const existing = await User.findOne({ email: normalizedEmail })
@@ -46,12 +44,11 @@ export async function signup(req: Request, res: Response) {
       passwordHash,
     })
 
-    // ✅ Non-blocking welcome email
+    // Non-blocking welcome email
     sendWelcomeEmail(user.email, user.name).catch((err) =>
       console.error("Welcome email failed:", err)
     )
 
-    // ✅ Minimal JWT payload
     const token = signJwt({
       id: user._id.toString(),
       role: user.role,
@@ -80,6 +77,7 @@ export async function signup(req: Request, res: Response) {
 export async function signin(req: Request, res: Response) {
   try {
     const parse = signinSchema.safeParse(req.body)
+
     if (!parse.success) {
       return res.status(400).json({
         success: false,
@@ -88,11 +86,10 @@ export async function signin(req: Request, res: Response) {
     }
 
     const { email, password } = parse.data
-
-    // ✅ Normalize email
     const normalizedEmail = email.trim().toLowerCase()
 
     const user = await User.findOne({ email: normalizedEmail })
+
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
       return res.status(401).json({
         success: false,
@@ -100,7 +97,6 @@ export async function signin(req: Request, res: Response) {
       })
     }
 
-    // ✅ Minimal JWT payload
     const token = signJwt({
       id: user._id.toString(),
       role: user.role,
@@ -127,7 +123,12 @@ export async function signin(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  res.clearCookie("auth-token", COOKIE_OPTIONS)
+  res.clearCookie("auth-token", {
+    httpOnly: true,
+    secure: true,
+    sameSite: "none",
+    path: "/",
+  })
 
   return res.json({
     success: true,
@@ -156,7 +157,7 @@ export async function me(req: Request, res: Response) {
       })
     }
 
-    // 🔥 CRITICAL: Disable caching completely
+    // Disable caching
     res.setHeader("Cache-Control", "no-store, no-cache, must-revalidate, proxy-revalidate")
     res.setHeader("Pragma", "no-cache")
     res.setHeader("Expires", "0")
