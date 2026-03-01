@@ -25,10 +25,9 @@ export async function signup(req: Request, res: Response) {
 
     res.cookie("auth-token", token, {
       httpOnly: true,
-      secure: true,              // MUST be true in production
-      sameSite: "none",          // REQUIRED for cross-subdomain
-      domain: ".getatlas.tech",  // VERY IMPORTANT
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: true,           // MUST be true for HTTPS
+      sameSite: "none",       // MUST be none for cross-subdomain
+      maxAge: 60 * 60 * 24 * 7 * 1000,
       path: "/",
     })
 
@@ -59,10 +58,9 @@ export async function signin(req: Request, res: Response) {
 
     res.cookie("auth-token", token, {
       httpOnly: true,
-      secure: true,              // MUST be true in production
-      sameSite: "none",          // REQUIRED for cross-subdomain
-      domain: ".getatlas.tech",  // VERY IMPORTANT
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      secure: true,           // MUST be true for HTTPS
+      sameSite: "none",       // MUST be none for cross-subdomain
+      maxAge: 60 * 60 * 24 * 7 * 1000,
       path: "/",
     })
     return res.json({
