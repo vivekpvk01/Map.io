@@ -11,9 +11,9 @@ export function createApp(): Express {
 
   app.use(
     cors({
-      origin: env.FRONTEND_URL,
+      origin: ["https://getatlas.tech", "http://localhost:3000"],
       credentials: true,
-    }),
+    })
   )
   app.use(express.json())
   app.use(cookieParser())

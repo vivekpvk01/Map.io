@@ -23,12 +23,13 @@ export async function signup(req: Request, res: Response) {
     const user = await User.create({ name, email, passwordHash })
     const token = signJwt({ id: user._id.toString(), name: user.name, email: user.email, role: user.role })
 
-    res.cookie('auth-token', token, {
+    res.cookie("auth-token", token, {
       httpOnly: true,
-      secure: true,        // MUST be true for HTTPS
-      sameSite: 'none',    // REQUIRED for cross-domain
-      maxAge: 60 * 60 * 24 * 7 * 1000,
-      path: '/',
+      secure: true,              // MUST be true in production
+      sameSite: "none",          // REQUIRED for cross-subdomain
+      domain: ".getatlas.tech",  // VERY IMPORTANT
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
     })
 
     return res.status(201).json({
@@ -56,14 +57,14 @@ export async function signin(req: Request, res: Response) {
 
     const token = signJwt({ id: user._id.toString(), name: user.name, email: user.email, role: user.role })
 
-    res.cookie('auth-token', token, {
+    res.cookie("auth-token", token, {
       httpOnly: true,
-      secure: true,        // MUST be true for HTTPS
-      sameSite: 'none',    // REQUIRED for cross-domain
-      maxAge: 60 * 60 * 24 * 7 * 1000,
-      path: '/',
+      secure: true,              // MUST be true in production
+      sameSite: "none",          // REQUIRED for cross-subdomain
+      domain: ".getatlas.tech",  // VERY IMPORTANT
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
     })
-
     return res.json({
       success: true,
       data: { id: user._id, name: user.name, email: user.email, role: user.role },
@@ -75,12 +76,12 @@ export async function signin(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  res.cookie('auth-token', '', {
+  res.clearCookie("auth-token", {
     httpOnly: true,
     secure: true,
-    sameSite: 'none',
-    maxAge: 0,
-    path: '/',
+    sameSite: "none",
+    domain: ".getatlas.tech",
+    path: "/",
   })
 
   return res.json({ success: true, message: 'Logged out successfully' })
