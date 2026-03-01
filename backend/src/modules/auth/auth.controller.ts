@@ -5,6 +5,7 @@ import { signJwt } from '../../utils/jwt'
 import { signupSchema, signinSchema } from '../../utils/validators'
 import { env } from '../../config/env'
 import type { AuthRequest } from '../../middlewares/auth'
+import { sendWelcomeEmail } from '../../utils/email'
 
 export async function signup(req: Request, res: Response) {
   try {
@@ -21,6 +22,7 @@ export async function signup(req: Request, res: Response) {
 
     const passwordHash = await bcrypt.hash(password, 12)
     const user = await User.create({ name, email, passwordHash })
+    await sendWelcomeEmail(user.email, user.name)
     const token = signJwt({ id: user._id.toString(), name: user.name, email: user.email, role: user.role })
 
     res.cookie("auth-token", token, {
