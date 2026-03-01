@@ -174,26 +174,3 @@ export async function me(req: Request, res: Response) {
     })
   }
 }
-
-const user = await User.findById(authReq.user.id)
-  .select("name email role createdAt")
-
-if (!user) {
-  return res.status(404).json({
-    success: false,
-    error: "User not found",
-  })
-}
-
-return res.json({
-  success: true,
-  data: user,
-})
-  } catch (error) {
-  console.error("Me error:", error)
-  return res.status(500).json({
-    success: false,
-    error: "Internal server error",
-  })
-}
-}
