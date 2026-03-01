@@ -1,14 +1,13 @@
-import express, { Express } from 'express'
-import cors from 'cors'
-import cookieParser from 'cookie-parser'
-import routes from './routes'
-import { env } from './config/env'
+import express, { Express } from "express";
+import cors from "cors";
+import cookieParser from "cookie-parser";
+import routes from "./routes";
+import { env } from "./config/env";
 
 export function createApp(): Express {
-  const app = express()
+  const app = express();
 
-  // Middleware
-
+  // 🔥 PRODUCTION SAFE CORS
   app.use(
     cors({
       origin: [
@@ -16,22 +15,26 @@ export function createApp(): Express {
         "https://www.getatlas.tech",
       ],
       credentials: true,
-      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-      allowedHeaders: ["Content-Type", "Authorization"],
     })
-  )
-  app.options("*", cors())
-  app.use(express.json())
-  app.use(cookieParser())
+  );
 
-  // Routes
-  app.use('/api', routes)
+  // 🔥 IMPORTANT: allow preflight properly
+  app.options("*", cors({
+    origin: [
+      "https://getatlas.tech",
+      "https://www.getatlas.tech",
+    ],
+    credentials: true,
+  }));
 
-  // Health check
-  app.get('/health', (req, res) => {
-    res.json({ success: true, message: 'Backend is running' })
-  })
+  app.use(express.json());
+  app.use(cookieParser());
 
-  return app
+  app.use("/api", routes);
+
+  app.get("/health", (req, res) => {
+    res.json({ success: true });
+  });
+
+  return app;
 }
-
