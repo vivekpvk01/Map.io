@@ -10,8 +10,9 @@ const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: true,
   sameSite: "none" as const,
+  domain: ".getatlas.tech",   // REQUIRED for subdomain sharing
   path: "/",
-  maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+  maxAge: 1000 * 60 * 60 * 24 * 7,
 }
 
 export async function signup(req: Request, res: Response) {
