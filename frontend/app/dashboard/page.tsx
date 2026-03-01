@@ -43,13 +43,12 @@ export default function DashboardPage() {
     if (!mounted) return
     if (authLoading) return
 
-    if (!authUser) {
-      router.replace("/login")
-      return
-    }
+    // 🚫 REMOVE redirect completely
+    if (!authUser) return
 
     setUser(authUser)
     fetchDashboardData()
+
   }, [authUser, authLoading, mounted])
 
   const fetchDashboardData = async () => {
