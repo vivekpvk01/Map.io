@@ -41,17 +41,15 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!mounted) return
-
-    if (authLoading) return  // ⬅️ WAIT until auth finishes loading
+    if (authLoading) return
 
     if (!authUser) {
-      router.replace("/login") // use replace instead of push
+      router.replace("/login")
       return
     }
 
     setUser(authUser)
     fetchDashboardData()
-
   }, [authUser, authLoading, mounted])
 
   const fetchDashboardData = async () => {

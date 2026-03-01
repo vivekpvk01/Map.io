@@ -73,6 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 🔐 SIGN IN
   const signIn = async (email: string, password: string) => {
+    setLoading(true)   // 🔥 prevent dashboard redirect race
+
     const loginRes = await fetch(`${apiUrl}/auth/signin`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -84,12 +86,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     })
 
     if (!loginRes.ok) {
+      setLoading(false)
       const error = await loginRes.json()
       throw new Error(error.error || "Sign in failed")
     }
 
-    // ✅ Always re-fetch real user from backend
     await fetchCurrentUser()
+
+    setLoading(false)  // 🔥 now safe
   }
 
   // 📝 SIGN UP
