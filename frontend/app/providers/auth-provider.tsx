@@ -61,15 +61,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 🔹 On initial load
   useEffect(() => {
-    if (!mounted) return
+    let isMounted = true
 
-    const initAuth = async () => {
-      await fetchCurrentUser()
-      setLoading(false)
+    const loadUser = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL
+        const res = await fetch(`${apiUrl}/auth/me`, {
+          credentials: "include",
+        })
+
+        const data = await res.json()
+
+        if (isMounted) {
+          if (data.success) {
+            setUser(data.data)
+          } else {
+            setUser(null)
+          }
+          setLoading(false)
+        }
+      } catch (err) {
+        if (isMounted) {
+          setUser(null)
+          setLoading(false)
+        }
+      }
     }
 
-    initAuth()
-  }, [mounted])
+    loadUser()
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
 
   // 🔐 SIGN IN
   const signIn = async (email: string, password: string) => {
