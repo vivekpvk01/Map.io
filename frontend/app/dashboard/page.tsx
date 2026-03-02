@@ -31,9 +31,7 @@ export default function DashboardPage() {
   const mounted = useMounted()
   const { user: authUser, loading: authLoading } = useAuth()
 
-  const [loading, setLoading] = useState(true)
-
-  // ✅ Always initialize with safe defaults (no null)
+  // ✅ Always start with safe defaults
   const [dashboardData, setDashboardData] = useState<DashboardData>({
     availableRoadmaps: 0,
     skillsCompleted: 0,
@@ -41,6 +39,7 @@ export default function DashboardPage() {
     recentActivity: [],
   })
 
+  // 🔥 Fetch dashboard AFTER auth is ready
   useEffect(() => {
     if (!mounted) return
     if (authLoading) return
@@ -51,8 +50,6 @@ export default function DashboardPage() {
 
   const fetchDashboardData = async () => {
     try {
-      setLoading(true)
-
       const apiUrl =
         process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
 
@@ -60,10 +57,7 @@ export default function DashboardPage() {
         credentials: "include",
       })
 
-      if (!response.ok) {
-        // New users might not have data yet
-        return
-      }
+      if (!response.ok) return
 
       const result = await response.json()
 
@@ -72,15 +66,13 @@ export default function DashboardPage() {
       }
     } catch (error) {
       console.error("Dashboard fetch error:", error)
-    } finally {
-      setLoading(false)
     }
   }
 
   if (!mounted) return null
 
-  // ✅ Only depend on authLoading + loading
-  if (authLoading || loading) {
+  // ✅ Only block for auth, NOT dashboard data
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -222,9 +214,7 @@ export default function DashboardPage() {
                         </h4>
                         <p className="text-sm text-gray-500">
                           Updated on{" "}
-                          {new Date(
-                            activity.updatedAt
-                          ).toLocaleDateString()}
+                          {new Date(activity.updatedAt).toLocaleDateString()}
                         </p>
                       </div>
                       <ArrowRight className="w-4 h-4 text-muted-foreground" />
