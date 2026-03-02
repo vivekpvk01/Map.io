@@ -64,12 +64,13 @@ export function SignupForm() {
         throw new Error("API URL not configured")
       }
 
+      // 1️⃣ Create account
       const response = await fetch(`${apiUrl}/auth/signup`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        credentials: "include", // important for cookie auth
+        credentials: "include",
         body: JSON.stringify({
           name: data.name.trim(),
           email: data.email.trim().toLowerCase(),
@@ -83,13 +84,16 @@ export function SignupForm() {
         throw new Error(result.error || "Signup failed")
       }
 
-      toast.success("Account created successfully! Redirecting...")
+      // 2️⃣ Immediately verify session (very important)
+      await fetch(`${apiUrl}/auth/me`, {
+        credentials: "include",
+      })
 
-      // small delay for better UX
-      setTimeout(() => {
-        router.push("/dashboard")
-        router.refresh()
-      }, 10)
+      toast.success("Account created successfully!")
+
+      // 3️⃣ Redirect cleanly
+      router.replace("/dashboard")
+
     } catch (err: any) {
       const message =
         err?.message || "Something went wrong. Please try again."
