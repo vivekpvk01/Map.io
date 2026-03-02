@@ -87,13 +87,6 @@ export function LoginForm() {
               )}
             </Button>
 
-            <div className="text-center p-3 bg-blue-50 rounded-md">
-              <p className="text-sm text-blue-700">
-                💡 <strong>Demo:</strong> Use any email with password{" "}
-                <code className="bg-blue-100 px-1 rounded font-mono">password123</code>
-              </p>
-            </div>
-
             <div className="text-center text-sm">
               Don't have an account?{" "}
               <Link href="/signup" className="text-blue-600 hover:underline font-medium">
