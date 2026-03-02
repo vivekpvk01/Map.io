@@ -19,7 +19,6 @@ import {
 } from "lucide-react"
 import { useAuth } from "@/app/providers/auth-provider"
 import { useMounted } from "@/hooks/use-mounted"
-import { useRouter } from "next/navigation"
 
 interface DashboardData {
   availableRoadmaps: number
@@ -30,7 +29,6 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const mounted = useMounted()
-  const router = useRouter()
   const { user: authUser, loading: authLoading } = useAuth()
 
   const [loading, setLoading] = useState(true)
@@ -46,14 +44,10 @@ export default function DashboardPage() {
   useEffect(() => {
     if (!mounted) return
     if (authLoading) return
-
-    if (!authUser) {
-      router.replace("/login")
-      return
-    }
+    if (!authUser) return
 
     fetchDashboardData()
-  }, [authUser, authLoading, mounted, router])
+  }, [authUser, authLoading, mounted])
 
   const fetchDashboardData = async () => {
     try {
@@ -85,19 +79,8 @@ export default function DashboardPage() {
 
   if (!mounted) return null
 
-  if (authLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Resolving session...</p>
-        </div>
-      </div>
-    )
-  }
-
   // ✅ Only depend on authLoading + loading
-  if (!authUser || loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">

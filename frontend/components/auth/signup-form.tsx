@@ -84,7 +84,10 @@ export function SignupForm() {
         throw new Error(result.error || "Signup failed")
       }
 
-      // 2️⃣ Session verified by AuthProvider
+      // 2️⃣ Immediately verify session (very important)
+      await fetch(`${apiUrl}/auth/me`, {
+        credentials: "include",
+      })
 
       toast.success("Account created successfully!")
 
