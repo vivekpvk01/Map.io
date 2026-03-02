@@ -15,6 +15,27 @@ const COOKIE_OPTIONS = {
   maxAge: 1000 * 60 * 60 * 24 * 7,
 }
 
+const clearStaleAuthCookies = (res: Response) => {
+  // Clear possible conflicting domains to guarantee a single source of truth
+  const domains = [
+    undefined, // no domain fallback
+    "getatlas.tech",
+    ".getatlas.tech",
+    "api.getatlas.tech",
+    ".api.getatlas.tech",
+  ]
+
+  domains.forEach((d) => {
+    res.clearCookie("auth-token", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      domain: d,
+      path: "/",
+    })
+  })
+}
+
 export async function signup(req: Request, res: Response) {
   try {
     const parse = signupSchema.safeParse(req.body)
@@ -55,6 +76,7 @@ export async function signup(req: Request, res: Response) {
       role: user.role,
     })
 
+    clearStaleAuthCookies(res)
     res.cookie("auth-token", token, COOKIE_OPTIONS)
 
     return res.status(201).json({
@@ -103,6 +125,7 @@ export async function signin(req: Request, res: Response) {
       role: user.role,
     })
 
+    clearStaleAuthCookies(res)
     res.cookie("auth-token", token, COOKIE_OPTIONS)
 
     return res.json({
@@ -124,13 +147,7 @@ export async function signin(req: Request, res: Response) {
 }
 
 export async function logout(req: Request, res: Response) {
-  res.clearCookie("auth-token", {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    domain: ".getatlas.tech",   // MUST match
-    path: "/",
-  })
+  clearStaleAuthCookies(res)
 
   return res.json({
     success: true,
