@@ -89,7 +89,7 @@ export function SignupForm() {
       setTimeout(() => {
         router.push("/dashboard")
         router.refresh()
-      }, 80)
+      }, 10)
     } catch (err: any) {
       const message =
         err?.message || "Something went wrong. Please try again."
