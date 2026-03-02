@@ -18,9 +18,7 @@ export default function Header() {
     } catch (error) {
       console.error("❌ Logout error:", error)
       // Force logout even if there's an error
-      if (typeof window !== "undefined") {
-        document.cookie = "auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT"
-      }
+      // Note: We cannot clear HTTPOnly cookies here. Backend `/auth/logout` is the sole source of truth.
       router.push("/login")
     }
   }
