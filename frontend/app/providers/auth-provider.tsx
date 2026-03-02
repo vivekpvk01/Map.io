@@ -115,7 +115,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(error.error || "Sign in failed")
     }
 
-    await fetchCurrentUser()
+    const result = await loginRes.json()
+    if (result.success && result.data) {
+      setUser({
+        id: result.data._id || result.data.id,
+        email: result.data.email,
+        name: result.data.name,
+        role: result.data.role,
+      })
+    }
 
     setLoading(false)  // 🔥 now safe
   }
@@ -138,8 +146,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error(error.error || "Sign up failed")
     }
 
-    // ✅ Always re-fetch correct user
-    await fetchCurrentUser()
+    const result = await signupRes.json()
+    if (result.success && result.data) {
+      setUser({
+        id: result.data._id || result.data.id,
+        email: result.data.email,
+        name: result.data.name,
+        role: result.data.role,
+      })
+    }
   }
 
   // 🚪 SIGN OUT
