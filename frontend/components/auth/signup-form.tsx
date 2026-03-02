@@ -135,7 +135,7 @@ export function SignupForm() {
                     <FormLabel>Name</FormLabel>
                     <FormControl>
                       <Input
-                        placeholder="Enter your name"
+                        placeholder="John Doe"
                         {...field}
                         disabled={isLoading}
                       />
@@ -154,7 +154,7 @@ export function SignupForm() {
                     <FormControl>
                       <Input
                         type="email"
-                        placeholder="Enter your email"
+                        placeholder="johndoe@example.com"
                         {...field}
                         disabled={isLoading}
                       />
